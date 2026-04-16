@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Proposals Pulse — DMG Control Center</title>
+<style>
+  :root {
+    --primary: #1a73e8; --primary-dark: #1557b0; --orange: #e8750a; --orange-light: #fff3e0;
+    --green: #2e7d32; --green-light: #e8f5e9; --red: #c62828; --red-light: #fce4ec;
+    --yellow: #f9a825; --yellow-light: #fff8e1; --purple: #6a1b9a; --purple-light: #f3e5f5;
+    --gray-50: #fafafa; --gray-100: #f5f5f5; --gray-200: #eeeeee; --gray-300: #e0e0e0;
+    --gray-400: #bdbdbd; --gray-500: #9e9e9e; --gray-600: #757575; --gray-700: #616161;
+    --gray-800: #424242; --gray-900: #212121;
+    --header-bg: #1e293b; --sidebar-bg: #0f172a;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
+    --card-shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--gray-100); color:var(--gray-900); font-size:14px; }
+
+  .app { display:flex; min-height:100vh; }
+  .sidebar { width:56px; background:var(--sidebar-bg); flex-shrink:0; display:flex; flex-direction:column; align-items:center; padding-top:12px; gap:4px; }
+  .sidebar-icon { width:40px; height:40px; display:flex; align-items:center; justify-content:center; color:var(--gray-400); border-radius:8px; cursor:pointer; font-size:18px; }
+  .sidebar-icon:hover,.sidebar-icon.active { background:rgba(255,255,255,0.1); color:white; }
+  .sidebar-logo { color:var(--orange); font-weight:800; font-size:16px; margin-bottom:12px; }
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .header { background:var(--header-bg); color:white; padding:0 24px; height:48px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .header-left .brand { background:var(--primary); padding:4px 12px; border-radius:4px; font-weight:600; font-size:12px; }
+  .header-user { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .header-user .avatar { width:28px; height:28px; background:var(--orange); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:11px; }
+  .content { flex:1; overflow-y:auto; }
+  .breadcrumb { padding:12px 24px; font-size:13px; color:var(--gray-600); display:flex; align-items:center; gap:8px; }
+  .breadcrumb a { color:var(--primary); text-decoration:none; cursor:pointer; }
+  .breadcrumb a:hover { text-decoration:underline; }
+  .page-header { padding:0 24px 16px; display:flex; align-items:center; justify-content:space-between; }
+  .page-title { font-size:22px; font-weight:700; }
+  .page-tabs { display:flex; gap:0; margin-left:24px; }
+  .page-tab { padding:6px 16px; font-size:13px; color:var(--gray-600); cursor:pointer; border-radius:4px; }
+  .page-tab.active { background:var(--gray-200); color:var(--gray-900); font-weight:600; }
+  .page-actions { display:flex; gap:8px; align-items:center; }
+  .page-time { font-size:12px; color:var(--gray-500); }
+
+  .btn { padding:8px 16px; border-radius:6px; border:1px solid var(--gray-300); background:white; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:500; transition:all 0.15s; }
+  .btn:hover { background:var(--gray-50); border-color:var(--gray-400); }
+  .btn-primary { background:var(--primary); color:white; border-color:var(--primary); }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-success { background:var(--green); color:white; border-color:var(--green); }
+  .btn-success:hover { opacity:0.9; }
+  .btn-danger { color:var(--red); border-color:var(--red); background:white; }
+  .btn-danger:hover { background:var(--red-light); }
+  .btn-danger-filled { background:var(--red); color:white; border-color:var(--red); }
+  .btn-orange { background:var(--orange); color:white; border-color:var(--orange); }
+  .btn-orange:hover { opacity:0.9; }
+  .btn-sm { padding:5px 10px; font-size:12px; }
+  .btn-lg { padding:12px 28px; font-size:15px; font-weight:600; }
+  .btn-outline-primary { color:var(--primary); border-color:var(--primary); background:white; }
+  .btn-outline-primary:hover { background:#e8f0fe; }
+  .btn-ghost { border:none; background:none; color:var(--primary); padding:4px 8px; }
+  .btn[disabled] { opacity:0.4; cursor:not-allowed; pointer-events:none; }
+
+  .filters { padding:0 24px 16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .filter-chip { padding:6px 12px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px; background:white; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .filter-chip:hover { border-color:var(--gray-400); }
+  .filter-chip.active { border-color:var(--primary); background:#e8f0fe; color:var(--primary); }
+
+  .pipeline-card { margin:0 24px 16px; background:white; border-radius:8px; box-shadow:var(--card-shadow); overflow:hidden; }
+  .pipeline-header { padding:16px 20px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .pipeline-title { font-size:15px; font-weight:600; }
+  .pipeline-hint { font-size:12px; color:var(--gray-500); }
+  .pipeline { display:flex; padding:8px 20px 20px; gap:2px; }
+  .pipeline-stage { flex:1; text-align:center; padding:16px 8px 12px; cursor:pointer; border-radius:6px; transition:all 0.2s; }
+  .pipeline-stage:hover { transform:translateY(-2px); box-shadow:var(--card-shadow-lg); }
+  .pipeline-stage.selected { outline:3px solid var(--primary); outline-offset:-3px; }
+  .pipeline-stage .stage-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+  .pipeline-stage .stage-value { font-size:22px; font-weight:700; }
+  .pipeline-stage .stage-count { font-size:12px; color:var(--gray-600); margin-top:2px; }
+  .pipeline-stage .stage-sub { font-size:11px; color:var(--green); margin-top:3px; font-weight:600; }
+  .pipeline-stage.draft { background:#f0f4f8; } .pipeline-stage.draft .stage-label { color:var(--gray-600); }
+  .pipeline-stage.pending-review { background:#fff3e0; } .pipeline-stage.pending-review .stage-label { color:var(--orange); }
+  .pipeline-stage.awaiting-pricing { background:#fff8e1; } .pipeline-stage.awaiting-pricing .stage-label { color:#e6a200; }
+  .pipeline-stage.pending-submission { background:#e3f2fd; } .pipeline-stage.pending-submission .stage-label { color:var(--primary); }
+  .pipeline-stage.submitted { background:#e8eaf6; } .pipeline-stage.submitted .stage-label { color:#3949ab; }
+  .pipeline-stage.approved { background:var(--green-light); } .pipeline-stage.approved .stage-label { color:var(--green); }
+  .pipeline-stage.rejected { background:var(--red-light); } .pipeline-stage.rejected .stage-label { color:var(--red); }
+  .pipeline-stage.cancelled { background:var(--gray-200); } .pipeline-stage.cancelled .stage-label { color:var(--gray-600); }
+  .pipeline-arrow { display:flex; align-items:center; color:var(--gray-300); font-size:18px; }
+
+  .table-card { margin:0 24px 24px; background:white; border-radius:8px; box-shadow:var(--card-shadow); overflow:hidden; }
+  .table-header { padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); }
+  .table-header-left { display:flex; align-items:center; gap:12px; }
+  .table-count { font-weight:600; font-size:15px; }
+  .table-count span { color:var(--gray-500); font-weight:400; }
+  .search-input { padding:7px 12px 7px 32px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px; width:280px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239e9e9e' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.442.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") 10px center no-repeat; }
+
+  table { width:100%; border-collapse:collapse; }
+  thead th { padding:10px 12px; text-align:left; font-size:12px; font-weight:600; color:var(--gray-600); text-transform:uppercase; letter-spacing:0.3px; border-bottom:2px solid var(--gray-200); background:var(--gray-50); white-space:nowrap; cursor:default; }
+  thead th.sortable { cursor:pointer; user-select:none; }
+  thead th.sortable:hover { color:var(--gray-900); }
+  tbody tr { cursor:pointer; transition:background 0.1s; }
+  tbody tr:hover { background:#f8fafd; }
+  tbody td { padding:12px 12px; font-size:13px; border-bottom:1px solid var(--gray-100); white-space:nowrap; }
+
+  .status-chip { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .status-chip.draft { background:var(--gray-200); color:var(--gray-700); }
+  .status-chip.pending-review { background:#fff3e0; color:#e65100; }
+  .status-chip.awaiting-pricing { background:#fff8e1; color:#f57f17; }
+  .status-chip.pending-submission { background:#e3f2fd; color:#1565c0; }
+  .status-chip.submitted { background:#e8eaf6; color:#283593; }
+  .status-chip.approved { background:var(--green-light); color:var(--green); }
+  .status-chip.rejected { background:var(--red-light); color:var(--red); }
+  .status-chip.cancelled { background:var(--gray-200); color:var(--gray-600); }
+
+  .creator-chip { padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; display:inline-block; margin-right:4px; }
+  .creator-chip.field { background:#e3f2fd; color:#1565c0; }
+  .creator-chip.nat { background:var(--orange-light); color:#e65100; }
+  .creator-chip.provider { background:var(--purple-light); color:var(--purple); }
+
+  .active-filter-banner { margin:0 24px 12px; padding:8px 16px; background:#e8f0fe; border-radius:6px; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--primary); }
+  .active-filter-banner .clear { cursor:pointer; text-decoration:underline; margin-left:auto; }
+  .active-filter-banner .filter-tag { background:var(--primary); color:white; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:4px; }
+  .active-filter-banner .filter-tag .x { cursor:pointer; opacity:0.7; }
+
+  .days-badge { padding:2px 6px; border-radius:4px; font-size:12px; font-weight:600; }
+  .days-ok { background:var(--green-light); color:var(--green); }
+  .days-warn { background:var(--yellow-light); color:#b8860b; }
+  .days-critical { background:var(--red-light); color:var(--red); }
+
+  /* ===== DETAIL PAGE ===== */
+  .detail-page { padding:0 24px 40px; max-width:920px; margin:0 auto; }
+
+  .lifecycle-stepper { display:flex; align-items:center; margin-bottom:24px; padding:20px; background:white; border-radius:8px; box-shadow:var(--card-shadow); }
+  .step { display:flex; align-items:center; flex:1; }
+  .step-node { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; border:2px solid var(--gray-300); background:white; color:var(--gray-500); transition:all 0.3s; }
+  .step-node.completed { background:var(--green); border-color:var(--green); color:white; }
+  .step-node.current { background:var(--primary); border-color:var(--primary); color:white; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(26,115,232,0.3); } 50% { box-shadow:0 0 0 8px rgba(26,115,232,0); } }
+  .step-label { font-size:11px; margin-left:8px; font-weight:600; color:var(--gray-500); white-space:nowrap; }
+  .step-label.current { color:var(--primary); } .step-label.completed { color:var(--green); }
+  .step-connector { flex:1; height:2px; background:var(--gray-300); margin:0 8px; min-width:16px; }
+  .step-connector.completed { background:var(--green); }
+
+  .card { background:white; border-radius:8px; box-shadow:var(--card-shadow); overflow:hidden; margin-bottom:20px; }
+  .card-header { padding:16px 20px; border-bottom:1px solid var(--gray-200); display:flex; justify-content:space-between; align-items:center; }
+  .card-header h3 { font-size:15px; font-weight:600; }
+  .card-body { padding:20px; }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .info-item label { display:block; font-size:11px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:4px; }
+  .info-item .value { font-size:14px; font-weight:500; }
+  .info-item .value a { color:var(--primary); text-decoration:none; }
+
+  .alert-banner { padding:12px 16px; border-radius:6px; margin-bottom:16px; font-size:13px; display:flex; align-items:flex-start; gap:8px; }
+  .alert-banner.warn { background:var(--orange-light); color:#bf360c; border:1px solid #ffcc80; }
+  .alert-banner.info { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+  .alert-banner.success { background:var(--green-light); color:var(--green); border:1px solid #a5d6a7; }
+  .alert-banner.danger { background:var(--red-light); color:var(--red); border:1px solid #ef9a9a; }
+
+  .compass-box { border:2px dashed #c5cae9; border-radius:8px; padding:16px; margin-bottom:16px; background:#f5f7ff; }
+  .compass-title { font-size:13px; font-weight:700; color:#3949ab; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .compass-insight { padding:8px 12px; border-radius:6px; margin-bottom:6px; font-size:13px; display:flex; align-items:center; gap:8px; }
+  .compass-insight.positive { background:var(--green-light); color:var(--green); }
+  .compass-insight.warning { background:var(--yellow-light); color:#b8860b; }
+  .compass-insight.negative { background:var(--red-light); color:var(--red); }
+  .compass-insight.neutral { background:var(--gray-100); color:var(--gray-700); }
+
+  .desc-field { border:1px solid var(--gray-300); border-radius:6px; padding:12px; min-height:60px; font-size:13px; line-height:1.6; position:relative; }
+  .desc-field textarea { width:100%; border:none; outline:none; font-size:13px; line-height:1.6; font-family:inherit; resize:vertical; min-height:48px; }
+  .ai-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600; background:linear-gradient(135deg,#e8eaf6,#f3e5f5); color:#5c6bc0; border:1px solid #c5cae9; cursor:pointer; }
+  .ai-badge:hover { background:linear-gradient(135deg,#c5cae9,#e1bee7); }
+
+  .section-locked { position:relative; }
+  .section-locked::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0.6); border-radius:8px; pointer-events:all; cursor:not-allowed; }
+  .lock-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--gray-200); padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; color:var(--gray-600); z-index:2; }
+
+  .estimate-card { border:1px solid var(--gray-200); border-radius:8px; padding:16px; margin-bottom:12px; background:white; }
+  .estimate-source { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:6px; font-size:13px; }
+  .erq-status { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+  .erq-status.sent { background:#e3f2fd; color:#1565c0; }
+  .erq-status.open { background:var(--yellow-light); color:#b8860b; }
+  .erq-status.received { background:var(--green-light); color:var(--green); }
+  .erq-status.posted { background:var(--purple-light); color:var(--purple); }
+
+  .pricing-boxes { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .pricing-box { padding:16px; border:1px solid var(--gray-200); border-radius:8px; }
+  .pricing-box.filled { border-color:var(--green); background:#f9fdf9; }
+  .pricing-box .pb-label { font-size:11px; font-weight:600; color:var(--gray-500); text-transform:uppercase; }
+  .pricing-box .pb-value { font-size:20px; font-weight:700; margin-top:4px; }
+  .pricing-box .pb-hint { font-size:12px; color:var(--gray-500); font-style:italic; margin-top:2px; }
+  .pricing-box .pb-check { color:var(--green); font-size:14px; }
+  .pricing-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--gray-100); }
+  .pricing-row:last-child { border-bottom:none; }
+
+  .line-section { margin-bottom:16px; border:1px solid var(--gray-200); border-radius:8px; overflow:hidden; }
+  .line-section-header { padding:12px 16px; background:var(--gray-50); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); font-size:13px; font-weight:600; cursor:pointer; }
+  .line-section-body { padding:16px; }
+  .pricing-table { width:100%; border-collapse:collapse; }
+  .pricing-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:600; color:var(--gray-500); text-transform:uppercase; border-bottom:1px solid var(--gray-200); }
+  .pricing-table td { padding:10px 12px; font-size:13px; border-bottom:1px solid var(--gray-100); }
+  .pricing-table input { width:80px; padding:4px 8px; border:1px solid var(--gray-300); border-radius:4px; font-size:13px; text-align:right; }
+  .pricing-table input.locked { background:var(--gray-100); border-color:var(--gray-200); color:var(--gray-600); cursor:not-allowed; }
+  .pricing-table select { padding:4px 8px; border:1px solid var(--gray-300); border-radius:4px; font-size:13px; }
+  .add-line { color:var(--primary); font-size:13px; font-weight:500; cursor:pointer; padding:8px 0; }
+  .provider-quote-row { display:flex; align-items:center; gap:12px; padding:8px 16px; font-size:13px; color:var(--gray-600); }
+  .locked-notice { font-size:11px; color:var(--orange); display:flex; align-items:center; gap:4px; }
+
+  .submit-card { border:2px dashed var(--orange); background:var(--orange-light); border-radius:8px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .submit-card .sc-text { font-size:14px; font-weight:600; }
+  .submit-card .sc-sub { font-size:12px; color:var(--gray-600); }
+
+  .bottom-actions { display:flex; justify-content:space-between; gap:12px; padding:20px 0; border-top:1px solid var(--gray-200); margin-top:20px; }
+
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--gray-900); color:white; padding:12px 24px; border-radius:8px; font-size:14px; font-weight:500; z-index:1000; opacity:0; transform:translateY(20px); transition:all 0.3s; box-shadow:var(--card-shadow-lg); }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.success { background:var(--green); }
+  .toast.error { background:var(--red); }
+
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; display:flex; align-items:center; justify-content:center; }
+  .modal { background:white; border-radius:12px; box-shadow:var(--card-shadow-lg); width:520px; max-height:80vh; overflow-y:auto; }
+  .modal-header { padding:20px 24px; border-bottom:1px solid var(--gray-200); display:flex; justify-content:space-between; align-items:center; }
+  .modal-header h3 { font-size:17px; font-weight:600; }
+  .modal-close { width:32px; height:32px; border:none; background:none; cursor:pointer; font-size:20px; color:var(--gray-500); border-radius:6px; }
+  .modal-body { padding:24px; }
+  .modal-footer { padding:16px 24px; border-top:1px solid var(--gray-200); display:flex; justify-content:flex-end; gap:8px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:4px; }
+  .form-group input,.form-group select,.form-group textarea { width:100%; padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px; font-family:inherit; }
+  .form-group textarea { resize:vertical; min-height:80px; }
+
+  .fade-in { animation:fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .margin-positive { color:var(--green); } .margin-negative { color:var(--red); }
+
+  .collapsible-header { cursor:pointer; user-select:none; }
+  .collapsible-header .arrow { transition:transform 0.2s; display:inline-block; }
+  .collapsible-header.collapsed .arrow { transform:rotate(-90deg); }
+
+  .total-bar { background:var(--orange); color:white; padding:12px 20px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-size:16px; margin-top:12px; }
+
+  .attachment-item { display:flex; align-items:center; gap:8px; padding:10px 16px; background:var(--gray-50); border-radius:6px; margin-bottom:6px; font-size:13px; color:var(--primary); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">D</div>
+    <div class="sidebar-icon" title="Dashboard">&#9633;</div>
+    <div class="sidebar-icon" title="Tickets">&#9776;</div>
+    <div class="sidebar-icon active" title="Pulse">&#9672;</div>
+    <div class="sidebar-icon" title="Providers">&#9874;</div>
+    <div class="sidebar-icon" title="Customers">&#9734;</div>
+    <div class="sidebar-icon" title="Reports">&#9744;</div>
+    <div class="sidebar-icon" title="Settings">&#9881;</div>
+  </div>
+  <div class="main">
+    <div class="header">
+      <div class="header-left">
+        <div class="brand">DMG Ops</div>
+        <span style="color:var(--gray-400);font-size:13px;">Control Center</span>
+      </div>
+      <div class="header-user">
+        <span>Sondra Pflum</span>
+        <span style="background:var(--orange);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">NAT Lead</span>
+        <div class="avatar">SP</div>
+      </div>
+    </div>
+    <div class="content" id="app-content"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="modal-container"></div>
+
+<script>
+const STAGES=[{key:'draft',label:'Draft'},{key:'pending-review',label:'Pending Review'},{key:'awaiting-pricing',label:'Awaiting Pricing'},{key:'pending-submission',label:'Pending Submission'},{key:'submitted',label:'Submitted'},{key:'approved',label:'Approved'},{key:'rejected',label:'Rejected'},{key:'cancelled',label:'Cancelled'}];
+const CUSTOMERS=['Kroger','CVS','Target','Home Depot',"Kohl's",'Walmart','Dollar General','Walgreens'];
+const SERVICE_LINES=['Plumbing','Refrigeration','HVAC','Electrical','General Maintenance'];
+const SERVICE_TYPES=['Freezer','Walk-in Cooler','RTU','Condenser','Pipe Repair','Drain Cleaning','Backflow','Lighting','Compressor','Thermostat'];
+const LOCATIONS=['Store #6789 - Dallas, TX','Store #7890 - San Antonio, TX','Store #3456 - Philadelphia, PA','Store #9013 - Charlotte, NC','Store #7891 - Seattle, WA','Store #2345 - Denver, CO','Store #1122 - Miami, FL','Store #5544 - Chicago, IL'];
+const DESCRIPTIONS=['Thermostat not responding to input. Zone 3 not cooling properly.','Freezer door gasket torn. Cold air leaking. Product at risk.','RTU making grinding noise. Possible bearing failure on unit 2.','HVAC unit not cooling properly. Customer reports warm zones.','Plumbing leak under main sink. Water damage to cabinet.','Walk-in cooler compressor cycling frequently. Temp rising.','Condenser fan motor seized. Refrigeration case warming.','Electrical panel showing signs of corrosion. Safety concern.','Floor drain backing up during rain. Possible mainline issue.','Ballast replacement needed for 8 fixtures in sales floor.'];
+const PEOPLE={field:['Jason Rodriguez','Maria Lopez','Kevin Park','Angela White'],nat:['Sondra Pflum','Tyler Morrison','Rachel Kim'],provider:['ABC Plumbing Co.','XYZ Mechanical','FastFix Services']};
+const ASSIGNEES=['Sondra Pflum','Tyler Morrison','Rachel Kim','Unassigned'];
+// Integrated customers
+const INTEGRATED_CUSTOMERS=['Kroger','Target','Walmart','Home Depot','CVS'];
+
+let proposals=[];
+let sortField='estimatesReceived';
+let sortDir='desc';
+
+function rnd(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function rndInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+function genProposal(status){
+  const customer=rnd(CUSTOMERS),sl=rnd(SERVICE_LINES),st=rnd(SERVICE_TYPES),loc=rnd(LOCATIONS),desc=rnd(DESCRIPTIONS);
+  const creatorTypes=['field','field','field','nat','provider'];
+  const ct=rnd(creatorTypes),cn=rnd(PEOPLE[ct]);
+  const custNTE=Math.random()>0.15?rndInt(500,15000):0; // 15% proactive (no NTE)
+  const providerQuote=rndInt(Math.floor(custNTE*0.3)||100,Math.floor(custNTE*0.7)||800);
+  const customerPrice=Math.floor(providerQuote*(1.1+Math.random()*0.6));
+  const estimatesReceived=status==='awaiting-pricing'?rndInt(0,3):(['pending-submission','submitted','approved'].includes(status)?rndInt(1,3):0);
+  const hasFieldERQ=ct==='field'&&Math.random()>0.4;
+  const erqs=[];
+  if(hasFieldERQ||status==='awaiting-pricing'||status==='pending-submission'){
+    erqs.push({id:`ERQ-${rndInt(1000,9999)}`,provider:rnd(PEOPLE.provider),status:hasFieldERQ&&status==='pending-review'?'open':(Math.random()>0.5?'received':'sent'),amount:rndInt(200,800),date:'2026-03-28',source:hasFieldERQ?'Field App':'Control Center',postedToBoard:status!=='pending-review'});
+    if(Math.random()>0.5) erqs.push({id:`ERQ-${rndInt(1000,9999)}`,provider:rnd(PEOPLE.provider),status:'sent',amount:null,date:'2026-04-01',source:'Control Center',postedToBoard:true});
+  }
+  const isIntegrated=INTEGRATED_CUSTOMERS.includes(customer);
+  // Contract rate lock: some customers have locked rates
+  const hasContractRates=Math.random()>0.5&&isIntegrated;
+  return {
+    id:`PRP-${rndInt(100,999)}-${rndInt(1000,9999)}`,tktId:`TKT-${rndInt(100,999)}-${rndInt(1000,9999)}`,
+    status,customer,serviceLine:sl,serviceType:st,location:loc,description:desc,
+    creatorType:ct,creatorName:cn,assignee:rnd(ASSIGNEES),
+    createdDate:`2026-0${rndInt(1,3)}-${String(rndInt(1,28)).padStart(2,'0')}`,
+    daysInStage:rndInt(1,30),estimatesReceived,custNTE,providerQuote,customerPrice,
+    validUntil:'2026-04-30',laborHours:rndInt(1,6),laborRate:rndInt(60,100),
+    tripCharge:rndInt(20,100),materialCost:rndInt(0,500),
+    erqs,isIntegrated,hasContractRates,hasFieldERQ,
+    isProactive:custNTE===0,
+    compassInsights:genCompassInsights(sl,customer),
+    qualified:!['draft','pending-review'].includes(status),
+    sfOpportunityId:!['draft','pending-review'].includes(status)?`006${rndInt(100000,999999)}`:null,
+    sfOpportunityUrl:!['draft','pending-review'].includes(status)?'#sf-opportunity':'',
+  };
+}
+
+function genCompassInsights(sl,customer){
+  const insights=[];
+  if(Math.random()>0.3) insights.push({type:'positive',text:`${sl} is within contracted service scope for ${customer}`});
+  else insights.push({type:'negative',text:`${sl} may not be covered under current contract for ${customer}`});
+  if(Math.random()>0.5) insights.push({type:'positive',text:'Property has active PSA agreement'});
+  else insights.push({type:'warning',text:'No PSA found for this property. Verify contract coverage.'});
+  if(Math.random()>0.6) insights.push({type:'neutral',text:'2 similar proposals approved for this customer in last 90 days'});
+  if(Math.random()>0.7) insights.push({type:'warning',text:'3 prior proposals cancelled at this property (pricing, scope)'});
+  return insights;
+}
+
+function generateProposals(){
+  const dist={'draft':48,'pending-review':38,'awaiting-pricing':25,'pending-submission':34,'submitted':57,'approved':42,'rejected':15,'cancelled':31};
+  proposals=[];
+  for(const[s,c]of Object.entries(dist)) for(let i=0;i<c;i++) proposals.push(genProposal(s));
+}
+generateProposals();
+
+let currentView='dashboard',selectedStage=null,selectedProposal=null;
+
+function render(){
+  const el=document.getElementById('app-content');
+  if(currentView==='dashboard'){el.innerHTML=renderDashboard();bindDashboard();}
+  else{el.innerHTML=renderDetail();bindDetail();}
+}
+
+function renderDashboard(){
+  const sc={},sv={};
+  STAGES.forEach(s=>{sc[s.key]=0;sv[s.key]=0;});
+  let awaitingWithEst=0;
+  proposals.forEach(p=>{sc[p.status]++;sv[p.status]+=p.customerPrice||0;if(p.status==='awaiting-pricing'&&p.estimatesReceived>0)awaitingWithEst++;});
+  let filtered=selectedStage?proposals.filter(p=>p.status===selectedStage):[...proposals];
+  if(sortField){filtered.sort((a,b)=>{let av=a[sortField],bv=b[sortField];if(typeof av==='string')return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);return sortDir==='asc'?av-bv:bv-av;});}
+
+  const fmt=v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+Math.floor(v/1e3)+'K':'$'+v;
+  const sortIcon=f=>sortField===f?(sortDir==='asc'?' &#9650;':' &#9660;'):'';
+
+  return `
+    <div class="breadcrumb"><a>Pulse</a> <span>></span> <span>Proposals</span></div>
+    <div class="page-header">
+      <div style="display:flex;align-items:center;"><div class="page-title">Proposals Pulse</div>
+      <div class="page-tabs"><div class="page-tab">Non Routine Speed</div><div class="page-tab">Quality</div><div class="page-tab active">Proposals</div></div></div>
+      <div class="page-actions"><span class="page-time">${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span></div>
+    </div>
+    <div class="filters">
+      <div class="filter-chip">Customer <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      <div class="filter-chip">Service Line <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      <div class="filter-chip">Service Type <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      <div class="filter-chip">Assignee <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      <div class="filter-chip">&#128197; Date Range</div>
+      <div class="filter-chip">Created By <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      <div class="filter-chip ${selectedStage?'active':''}">Status <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+    </div>
+    <div class="pipeline-card">
+      <div class="pipeline-header"><div class="pipeline-title">Proposal Pipeline</div><div class="pipeline-hint">Click a stage to filter</div></div>
+      <div class="pipeline">
+        ${STAGES.map(s=>`<div class="pipeline-stage ${s.key} ${selectedStage===s.key?'selected':''}" data-stage="${s.key}">
+          <div class="stage-label">${s.label}</div><div class="stage-value">${fmt(sv[s.key])}</div>
+          <div class="stage-count">${sc[s.key]} proposals</div>
+          ${s.key==='awaiting-pricing'?`<div class="stage-sub">${awaitingWithEst} w/ estimates received</div>`:''}
+        </div>${s.key!=='cancelled'?'<div class="pipeline-arrow">&#9654;</div>':''}`).join('')}
+      </div>
+    </div>
+    ${selectedStage?`<div class="active-filter-banner fade-in"><span>Filtered by:</span><span class="filter-tag">${STAGES.find(s=>s.key===selectedStage).label} <span class="x" id="clear-filter">&times;</span></span><span class="clear" id="clear-all">Clear all</span></div>`:''}
+    <div class="table-card">
+      <div class="table-header"><div class="table-header-left"><div class="table-count">Proposals <span>${filtered.length} found</span></div><input class="search-input" placeholder="Search by ID or location..." /></div><button class="btn btn-sm">&#8681; Export CSV</button></div>
+      <div style="overflow-x:auto;">
+        <table><thead><tr>
+          <th style="width:32px"></th>
+          <th>Proposal ID</th><th>Ticket ID</th><th>Description</th><th>Customer</th><th>Location</th>
+          <th>Service Line</th><th>Service Type</th><th>Created By</th><th>Assignee</th>
+          <th class="sortable" data-sort="createdDate">Created${sortIcon('createdDate')}</th>
+          <th class="sortable" data-sort="daysInStage">Days in Stage${sortIcon('daysInStage')}</th>
+          <th class="sortable" data-sort="estimatesReceived">Est. Received${sortIcon('estimatesReceived')}</th>
+          <th>Status</th>
+        </tr></thead><tbody>
+          ${filtered.slice(0,50).map(p=>{
+            const dc=p.daysInStage<=5?'days-ok':p.daysInStage<=14?'days-warn':'days-critical';
+            return `<tr data-pid="${p.id}">
+              <td><button style="border:none;background:none;cursor:pointer;color:var(--gray-500);font-size:16px;">&#8942;</button></td>
+              <td style="font-weight:600;color:var(--primary);">${p.id}</td>
+              <td style="color:var(--gray-600);">${p.tktId}</td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${p.description}">${p.description}</td>
+              <td style="font-weight:600;">${p.customer}${p.isProactive?' <span style="font-size:10px;color:var(--purple);font-weight:700;">PROACTIVE</span>':''}</td>
+              <td style="color:var(--gray-600);max-width:140px;overflow:hidden;text-overflow:ellipsis;">${p.location}</td>
+              <td>${p.serviceLine}</td><td>${p.serviceType}</td>
+              <td><span class="creator-chip ${p.creatorType}">${p.creatorType==='field'?'Field':p.creatorType==='nat'?'NAT':'Provider'}</span>${p.creatorName.split(' ').map((n,i)=>i===0?n:n[0]+'.').join(' ')}</td>
+              <td>${p.assignee}</td>
+              <td style="color:var(--gray-600);">${p.createdDate}</td>
+              <td><span class="days-badge ${dc}">${p.daysInStage}d</span></td>
+              <td style="text-align:center;font-weight:600;">${p.estimatesReceived}</td>
+              <td><span class="status-chip ${p.status}">${STAGES.find(s=>s.key===p.status).label}</span></td>
+            </tr>`;}).join('')}
+        </tbody></table>
+      </div>
+    </div>`;
+}
+
+function renderDetail(){
+  const p=selectedProposal,si=STAGES.findIndex(s=>s.key===p.status);
+  const isPR=p.status==='pending-review',isAP=p.status==='awaiting-pricing',isPS=p.status==='pending-submission',isSub=p.status==='submitted';
+  const isTerminal=['approved','rejected','cancelled'].includes(p.status);
+  const pricingLocked=!p.qualified; // locked if not yet qualified
+  const margin=p.customerPrice-p.providerQuote;
+  const marginPct=p.providerQuote>0?((margin/p.customerPrice)*100).toFixed(1):'N/A';
+  const hasProv=p.estimatesReceived>0||p.qualified;
+  const hasCust=isPS||isSub||p.status==='approved';
+
+  return `
+    <div class="breadcrumb fade-in"><a id="back-btn">Pulse</a> <span>></span> <a id="back-btn2">Proposals</a> <span>></span> <span>${p.id}</span></div>
+    <div class="detail-page fade-in">
+
+      <!-- Stepper -->
+      <div class="lifecycle-stepper">
+        ${STAGES.filter(s=>!['rejected','cancelled'].includes(s.key)).map((s,i,arr)=>{
+          const idx=STAGES.findIndex(st=>st.key===s.key);
+          const done=idx<si,cur=s.key===p.status;
+          return `<div class="step"><div class="step-node ${done?'completed':cur?'current':'upcoming'}">${done?'&#10003;':i+1}</div><span class="step-label ${done?'completed':cur?'current':''}">${s.label}</span></div>${i<arr.length-1?`<div class="step-connector ${done?'completed':''}"></div>`:''}`;
+        }).join('')}
+      </div>
+
+      <!-- Proposal Header Card -->
+      <div class="card">
+        <div style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">Proposal</div>
+              <div style="font-size:22px;font-weight:700;">${p.id}</div>
+              <div style="font-size:13px;color:var(--gray-600);margin-top:2px;">${p.customer} ${p.serviceType} ${p.serviceLine}${p.isProactive?' (Proactive)':''}</div>
+            </div>
+            <span class="status-chip ${p.status}" style="font-size:14px;padding:6px 16px;">${STAGES.find(s=>s.key===p.status).label}</span>
+          </div>
+          <div class="info-grid" style="margin-top:16px;">
+            <div class="info-item"><label>Customer</label><div class="value">${p.customer}</div></div>
+            <div class="info-item"><label>Property</label><div class="value">${p.location}</div></div>
+            <div class="info-item"><label>Service</label><div class="value">${p.serviceLine} / ${p.serviceType}</div></div>
+            <div class="info-item"><label>Ticket</label><div class="value"><a href="#">${p.tktId}</a></div></div>
+            <div class="info-item"><label>Intent</label><div class="value">${p.isProactive?'Proactive Field Visit':'NTE Increase'}</div></div>
+            <div class="info-item"><label>Owner</label><div class="value">${p.assignee}</div></div>
+          </div>
+          ${p.sfOpportunityId?`
+            <div style="margin-top:16px;padding:12px 16px;background:#f0f7ff;border:1px solid #bbdefb;border-radius:8px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="18" height="13" viewBox="0 0 20 14"><path d="M10 0C4.5 0 0 3.1 0 7s4.5 7 10 7 10-3.1 10-7S15.5 0 10 0z" fill="#00A1E0"/></svg>
+                <span style="font-size:13px;font-weight:600;color:#1565c0;">Salesforce Opportunity</span>
+                <span style="font-size:12px;color:var(--gray-500);">${p.sfOpportunityId}</span>
+              </div>
+              <a href="${p.sfOpportunityUrl||'#'}" target="_blank" class="btn btn-sm btn-outline-primary">View in Salesforce &#8599;</a>
+            </div>
+          `:''}
+        </div>
+      </div>
+
+      <!-- Description (editable) -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Description</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="ai-badge" id="ai-enhance-btn">&#10024; Enhance with AI</span>
+            <button class="btn btn-sm">Edit</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="desc-field">
+            <textarea id="desc-textarea">${p.description}</textarea>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--gray-500);">Last edited by ${p.creatorName} on ${p.createdDate}</div>
+        </div>
+      </div>
+
+      <!-- Qualification / Compass Section (Pending Review) -->
+      ${isPR?`
+        <div class="card" style="border:2px solid var(--orange);">
+          <div class="card-header" style="background:var(--orange-light);">
+            <h3 style="color:#e65100;">Confirm Relevant Proposal</h3>
+            <span style="font-size:12px;color:var(--gray-500);">Qualification required before pricing</span>
+          </div>
+          <div class="card-body">
+            ${p.creatorType==='field'?`<div class="alert-banner warn"><strong>Field-initiated proposal</strong> submitted by <strong>${p.creatorName}</strong>. Review details and Compass insights before qualifying.</div>`:''}
+
+            <div class="compass-box">
+              <div class="compass-title">&#9678; Opportunity Compass Insights</div>
+              ${p.compassInsights.map(i=>`<div class="compass-insight ${i.type}">${i.type==='positive'?'&#10003;':i.type==='negative'?'&#10007;':i.type==='warning'?'&#9888;':'&#8226;'} ${i.text}</div>`).join('')}
+              ${p.isProactive?`<div class="compass-insight warning">&#9888; No customer NTE provided. This was a proactive field visit identification.</div>`:''}
+              ${p.custNTE>0?`<div class="compass-insight neutral">&#8226; Customer NTE: $${p.custNTE.toLocaleString()}</div>`:''}
+            </div>
+
+            <div style="display:flex;gap:12px;margin-top:16px;">
+              <button class="btn btn-success btn-lg" id="approve-btn">&#10003; Approve Opportunity</button>
+              <button class="btn btn-danger btn-lg" id="reject-btn">&#10007; Cancel Proposal</button>
+            </div>
+          </div>
+        </div>
+      `:''}
+
+      <!-- Estimates Section -->
+      ${!isTerminal?`
+        <div class="card">
+          <div class="card-header">
+            <h3>Estimates</h3>
+            <div style="display:flex;gap:8px;">
+              ${p.qualified?`<button class="btn btn-sm btn-outline-primary" id="create-erq-btn">+ Create ERQ</button>`:''}
+            </div>
+          </div>
+          <div class="card-body" ${pricingLocked?'style="opacity:0.5;pointer-events:none;"':''}>
+            ${pricingLocked?'<div class="alert-banner info" style="opacity:1;">Qualify the proposal above before working with estimates and pricing.</div>':''}
+
+            ${p.erqs.length>0?p.erqs.map(e=>`
+              <div class="estimate-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                  <div>
+                    <div style="font-weight:600;">${e.status==='received'?'Estimate Received':'Estimate Request'+(e.status==='open'?' (Not Yet Posted)':' in Progress')}</div>
+                    <div style="font-size:12px;color:var(--gray-600);">${e.status==='open'?'Field started this ERQ. Review and post to provider board.':e.status==='received'?'Provider submitted an estimate. Review and apply.':'Awaiting provider response.'}</div>
+                  </div>
+                  <span class="erq-status ${e.status}">${e.status==='open'?'Not Posted':e.status==='sent'?'Awaiting Response':e.status==='received'?'Received':e.status}</span>
+                </div>
+                <div class="estimate-source">
+                  <span style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">Source</span> ${e.source}
+                  &nbsp;|&nbsp; <a style="color:var(--primary);font-weight:600;">${e.id}</a>
+                  &nbsp; <span style="color:var(--gray-500);">${e.provider}</span>
+                  ${e.amount&&e.status==='received'?`&nbsp;|&nbsp; <strong>$${e.amount}</strong>`:''}
+                </div>
+                <div style="margin-top:10px;display:flex;gap:8px;">
+                  ${e.status==='open'?`<button class="btn btn-sm btn-primary" onclick="postERQToBoard('${e.id}')">Review &amp; Post to Provider &#8594;</button>`:''}
+                  ${e.status==='received'?`<button class="btn btn-sm btn-success" onclick="useEstimate(${e.amount},'${e.id}')">Use This Estimate</button>`:''}
+                </div>
+              </div>
+            `).join(''):`<p style="color:var(--gray-500);font-size:13px;">${pricingLocked?'':'No estimate requests yet. Create an ERQ to solicit provider pricing, or self-quote below.'}</p>`}
+          </div>
+        </div>
+      `:''}
+
+      <!-- Pricing Section -->
+      <div class="card" ${pricingLocked?'style="position:relative;"':''}>
+        ${pricingLocked?'<div style="position:absolute;inset:0;background:rgba(255,255,255,0.7);z-index:1;border-radius:8px;display:flex;align-items:center;justify-content:center;"><div style="background:var(--gray-200);padding:10px 20px;border-radius:6px;font-weight:600;color:var(--gray-600);">&#128274; Qualify proposal to unlock pricing</div></div>':''}
+        <div class="card-header"><h3>Pricing Status</h3><span style="font-size:12px;color:var(--gray-500);">Summary of line item totals below</span></div>
+        <div class="card-body">
+          <div class="pricing-row">
+            <span>${p.isProactive?'Customer NTE':'Current Customer NTE'}</span>
+            <span style="font-weight:600;">${p.custNTE>0?'$'+p.custNTE.toLocaleString():'<span style="color:var(--orange);font-style:italic;">No NTE (proactive identification)</span>'}</span>
+          </div>
+          <div class="pricing-boxes">
+            <div class="pricing-box ${hasProv?'filled':''}">
+              <div class="pb-label">Provider Quote Total ${hasProv?'<span class="pb-check">&#10003;</span>':''}</div>
+              <div class="pb-value">${hasProv?'$'+p.providerQuote.toLocaleString():'&mdash;'}</div>
+              ${hasProv?`<div class="pb-hint">JOB-${p.tktId.replace('TKT-','')}</div>`:'<div class="pb-hint">Awaiting provider quote</div>'}
+            </div>
+            <div class="pricing-box ${hasCust?'filled':''}">
+              <div class="pb-label">Customer Pretax Total ${hasCust?'<span class="pb-check">&#10003;</span>':''}</div>
+              <div class="pb-value">${hasCust?'$'+p.customerPrice.toLocaleString():'&mdash;'}</div>
+              ${!hasCust?'<div class="pb-hint">Enter rates below or use an estimate</div>':'<div class="pb-hint">Sum of line item subtotals</div>'}
+            </div>
+          </div>
+          <div class="pricing-row"><span>Margin</span><span class="${margin>=0?'margin-positive':'margin-negative'}" style="font-weight:700;">${hasCust?marginPct+'%':'N/A'}${hasCust?' ($'+margin.toLocaleString()+')':''}</span></div>
+
+          <h4 style="margin:20px 0 12px;font-size:14px;font-weight:600;">Line Items</h4>
+
+          <div class="line-section">
+            <div class="line-section-header">
+              <span>Labor And Trip &nbsp;<span style="font-weight:400;color:var(--gray-500);">Labor &amp; Trip Margin ${hasCust?marginPct+'%':'N/A'}</span></span>
+              <span><span style="color:var(--gray-500);font-weight:400;">Subtotal</span> <strong>$${hasCust?(p.laborHours*p.laborRate+p.tripCharge).toLocaleString():'0.00'}</strong> &nbsp; <span style="color:var(--gray-500);font-weight:400;">Provider</span> <strong>$${hasProv?p.providerQuote.toLocaleString():'0.00'}</strong></span>
+            </div>
+            <div class="line-section-body">
+              <div style="font-weight:600;margin-bottom:8px;">Labor</div>
+              <table class="pricing-table"><thead><tr><th>Type</th><th>Tech</th><th>Hours</th><th>Rate &amp; Rate Type</th><th>Total</th><th></th></tr></thead>
+              <tbody><tr>
+                <td><select style="padding:4px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>Regular</option><option>Emergency</option><option>After Hours</option></select></td>
+                <td><input type="number" value="1" style="width:50px;" /></td>
+                <td><input type="number" value="${p.laborHours}" id="labor-hours" /></td>
+                <td>
+                  ${p.hasContractRates?`<input type="number" value="${p.laborRate}" class="locked" readonly title="Contract rate (locked)" />`:`<input type="number" value="${p.laborRate}" id="labor-rate" />`}
+                  ${p.hasContractRates?'<span class="locked-notice">&#128274; Contract rate</span>':''}
+                  <select style="padding:4px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;margin-left:4px;"><option>Normal</option><option>OT</option><option>DT</option></select>
+                </td>
+                <td style="font-weight:600;" id="labor-total">$${(p.laborHours*p.laborRate).toLocaleString()}</td>
+                <td></td>
+              </tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div class="provider-quote-row">Provider labor quote <input type="number" value="${hasProv?p.providerQuote:''}" placeholder="$" style="width:80px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;margin-left:8px;" /> &nbsp; Labor margin <strong>${hasCust?marginPct+'%':'N/A'}</strong> &nbsp; Labor subtotal <strong>$${(p.laborHours*p.laborRate).toLocaleString()}</strong></div>
+
+              <div style="font-weight:600;margin:16px 0 8px;">Trip</div>
+              <table class="pricing-table"><thead><tr><th>Type</th><th>Quantity</th><th>Rate &amp; Rate Type</th><th>Total</th><th></th></tr></thead>
+              <tbody><tr><td colspan="5" style="color:var(--gray-400);font-style:italic;text-align:center;">No trip items added</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div class="provider-quote-row">Provider trip quote <input type="number" value="${p.tripCharge}" style="width:80px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;margin-left:8px;" /> &nbsp; Trip margin <strong>N/A</strong> &nbsp; Trip subtotal <strong>$0.00</strong></div>
+              ${isAP?`<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;"><button class="btn">Cancel</button><button class="btn btn-primary" id="save-pricing-btn">Save &amp; Next</button></div>`:''}
+            </div>
+          </div>
+
+          <div class="line-section">
+            <div class="line-section-header collapsible-header">
+              <span>Material And Equipment &nbsp;<span style="font-weight:400;color:var(--gray-500);">Margin N/A</span></span>
+              <span><span style="color:var(--gray-500);font-weight:400;">Subtotal</span> <strong>$0.00</strong> &nbsp; <span style="color:var(--gray-500);font-weight:400;">Provider</span> <strong>$0.00</strong></span>
+            </div>
+            <div class="line-section-body">
+              <div style="font-weight:600;margin-bottom:8px;">Material</div>
+              <table class="pricing-table"><thead><tr><th>Type</th><th>Qty</th><th>Unit</th><th>Cost/Unit</th><th>Markup</th><th>Total</th></tr></thead>
+              <tbody><tr><td colspan="6" style="color:var(--gray-400);font-style:italic;text-align:center;">No material items</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div style="font-weight:600;margin:16px 0 8px;">Equipment</div>
+              <table class="pricing-table"><thead><tr><th>Type</th><th>Qty</th><th>Unit</th><th>Cost/Unit</th><th>Markup</th><th>Total</th></tr></thead>
+              <tbody><tr><td colspan="6" style="color:var(--gray-400);font-style:italic;text-align:center;">No equipment items</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+            </div>
+          </div>
+
+          <div class="line-section">
+            <div class="line-section-header collapsible-header"><span>Pretax total &nbsp;<span style="font-weight:400;color:var(--gray-500);">Current margin ${hasCust?`<span class="${margin>=0?'margin-positive':'margin-negative'}">${marginPct}%</span>`:' N/A'}</span></span><span><span style="color:var(--gray-500);font-weight:400;">Pretax subtotal</span> <strong>$${hasCust?p.customerPrice.toLocaleString():'0.00'}</strong> &nbsp; <span style="color:var(--gray-500);font-weight:400;">Provider quote</span> <strong>$${hasProv?p.providerQuote.toLocaleString():'0.00'}</strong></span></div>
+          </div>
+          <div class="line-section"><div class="line-section-header collapsible-header"><span>&#9654; Tax</span><span style="font-weight:600;">$${hasCust?Math.floor(p.customerPrice*0.08).toLocaleString():'0.00'}</span></div></div>
+          <div class="line-section"><div class="line-section-header collapsible-header"><span>&#9654; Photos &amp; Documents</span><span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span></div></div>
+          <div class="total-bar"><span>Total</span><span>$${hasCust?Math.floor(p.customerPrice*1.08).toLocaleString():'0.00'}</span></div>
+        </div>
+      </div>
+
+      <!-- Submission Section -->
+      ${isPS?`
+        <div class="card">
+          <div class="card-header"><h3>Submit to Customer</h3></div>
+          <div class="card-body">
+            ${p.isIntegrated?`
+              <div class="alert-banner info">This customer uses ${p.customer==='Kroger'?'ServiceChannel':p.customer==='Target'?'Maximo':'ServiceChannel'} for work order management. Submit directly through the integration.</div>
+              <div class="submit-card">
+                <div><div class="sc-text">Submitted in customer's system?</div><div class="sc-sub">Confirm to update status.</div></div>
+                <button class="btn btn-orange btn-lg" id="submit-btn">Mark as Submitted</button>
+              </div>
+            `:`
+              <div class="alert-banner info">This customer is not integrated with a WO system. Submit manually (email, portal, or phone), then confirm below.</div>
+              <div class="submit-card">
+                <div><div class="sc-text">Submitted in customer's system?</div><div class="sc-sub">Confirm to update status.</div></div>
+                <button class="btn btn-orange btn-lg" id="submit-btn">Mark as Submitted</button>
+              </div>
+            `}
+          </div>
+        </div>
+      `:''}
+
+      ${isSub?`
+        <div class="card">
+          <div class="card-header"><h3>Submission Status</h3></div>
+          <div class="card-body">
+            <div class="alert-banner success">Proposal submitted to ${p.customer}. Awaiting customer decision.</div>
+          </div>
+        </div>
+      `:''}
+
+      <!-- Attachments -->
+      <div class="card">
+        <div class="card-header collapsible-header"><h3>&#9660; Attachments</h3><span style="font-size:12px;color:var(--gray-500);">2 files</span></div>
+        <div class="card-body">
+          <div class="attachment-item">&#128206; compressor_quote.pdf</div>
+          <div class="attachment-item">&#128206; site_photo.jpg</div>
+        </div>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="bottom-actions">
+        <div>${!isTerminal?`<button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>`:''}</div>
+        <div style="display:flex;gap:8px;">
+          ${isPS?`<button class="btn">Edit</button><button class="btn btn-orange btn-lg" id="submit-btn2">Submit</button>`:''}
+          ${isSub?`<button class="btn btn-danger-filled" id="reject-btn2">Mark Rejected</button><button class="btn btn-success btn-lg" id="approve-btn2">Mark Approved</button>`:''}
+          ${isPR?`<button class="btn btn-success btn-lg" id="approve-btn3">&#10003; Approve</button>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindDashboard(){
+  document.querySelectorAll('.pipeline-stage').forEach(el=>el.addEventListener('click',()=>{const s=el.dataset.stage;selectedStage=selectedStage===s?null:s;render();}));
+  document.getElementById('clear-filter')?.addEventListener('click',()=>{selectedStage=null;render();});
+  document.getElementById('clear-all')?.addEventListener('click',()=>{selectedStage=null;render();});
+  document.querySelectorAll('thead th.sortable').forEach(th=>th.addEventListener('click',()=>{const f=th.dataset.sort;if(sortField===f)sortDir=sortDir==='asc'?'desc':'asc';else{sortField=f;sortDir='desc';}render();}));
+  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';render();}));
+}
+
+function bindDetail(){
+  ['back-btn','back-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',goBack));
+
+  // Approve qualification
+  ['approve-btn','approve-btn3'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+    const btn=document.getElementById(id);
+    if(btn){btn.disabled=true;btn.innerHTML='&#9203; Qualifying...';}
+    // Disable reject too
+    document.getElementById('reject-btn')?.setAttribute('disabled','');
+    // Phase 1: short delay to simulate processing
+    setTimeout(()=>{
+      selectedProposal.status='awaiting-pricing';selectedProposal.qualified=true;
+      const sfId='006'+Math.floor(Math.random()*900000+100000);
+      selectedProposal.sfOpportunityId=sfId;
+      selectedProposal.sfOpportunityUrl='https://divisionsinc.lightning.force.com/lightning/r/Opportunity/'+sfId+'/view';
+      // Re-render with the new status, then show the SF toast inline
+      render();
+      showSFToast(sfId);
+    },1200);
+  }));
+  ['reject-btn'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showCancelModal(r=>{
+    selectedProposal.status='cancelled';toast('Proposal cancelled.','error');render();
+  })));
+
+  // Save pricing
+  document.getElementById('save-pricing-btn')?.addEventListener('click',()=>{
+    selectedProposal.status='pending-submission';toast('Pricing saved. Moved to Pending Submission.','success');render();
+  });
+
+  // Submit
+  ['submit-btn','submit-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+    showSubmitModal(()=>{selectedProposal.status='submitted';toast('Proposal submitted!','success');render();});
+  }));
+
+  // Mark approved/rejected
+  document.getElementById('approve-btn2')?.addEventListener('click',()=>{selectedProposal.status='approved';toast('Approved by customer!','success');render();});
+  document.getElementById('reject-btn2')?.addEventListener('click',()=>{selectedProposal.status='rejected';toast('Rejected by customer.','error');render();});
+
+  // Cancel
+  document.getElementById('cancel-btn')?.addEventListener('click',()=>showCancelModal(r=>{selectedProposal.status='cancelled';toast('Cancelled.','error');render();}));
+
+  // Create ERQ
+  document.getElementById('create-erq-btn')?.addEventListener('click',showERQModal);
+
+  // AI enhance
+  document.getElementById('ai-enhance-btn')?.addEventListener('click',()=>{
+    const ta=document.getElementById('desc-textarea');
+    if(ta){ta.value=ta.value+'\n\n[AI Enhanced] Scope includes diagnosis and repair of '+selectedProposal.serviceType.toLowerCase()+' system. Technician to assess root cause, replace failed components, and verify operational parameters post-repair. All work to comply with manufacturer specifications.';
+    toast('Description enhanced with AI.','success');}
+  });
+
+  // Labor calc
+  document.getElementById('labor-hours')?.addEventListener('input',()=>{
+    const h=parseFloat(document.getElementById('labor-hours')?.value||0);
+    const r=parseFloat(document.getElementById('labor-rate')?.value||selectedProposal.laborRate);
+    const el=document.getElementById('labor-total');if(el)el.textContent='$'+(h*r).toLocaleString();
+  });
+  document.getElementById('labor-rate')?.addEventListener('input',()=>{
+    const h=parseFloat(document.getElementById('labor-hours')?.value||0);
+    const r=parseFloat(document.getElementById('labor-rate')?.value||0);
+    const el=document.getElementById('labor-total');if(el)el.textContent='$'+(h*r).toLocaleString();
+  });
+}
+
+// Global functions
+function goBack(){currentView='dashboard';selectedProposal=null;render();}
+function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',3000);}
+
+function useEstimate(amount,erqId){
+  selectedProposal.providerQuote=amount;selectedProposal.estimatesReceived=Math.max(selectedProposal.estimatesReceived,1);
+  toast('Estimate from '+erqId+' ($'+amount+') applied to provider pricing.','success');render();
+}
+
+function postERQToBoard(erqId){
+  const erq=selectedProposal.erqs.find(e=>e.id===erqId);
+  if(erq){erq.status='sent';erq.postedToBoard=true;}
+  toast(erqId+' posted to provider board.','success');render();
+}
+
+function showCancelModal(onConfirm){
+  const reasons=['Pricing too high','Customer declined service','Duplicate proposal','Out of contract scope','Not a real opportunity','Provider unavailable','Customer handled internally','Other'];
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" id="mo"><div class="modal fade-in">
+      <div class="modal-header"><h3>Cancel Proposal</h3><button class="modal-close" id="mc">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Cancellation Reason (required)</label><select id="cr"><option value="">Select a reason...</option>${reasons.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Notes (optional)</label><textarea placeholder="Additional context..."></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn" id="mcan">Cancel</button><button class="btn btn-danger-filled" id="mconf">Confirm</button></div>
+    </div></div>`;
+  document.getElementById('mc').onclick=closeModal;document.getElementById('mcan').onclick=closeModal;
+  document.getElementById('mo').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
+  document.getElementById('mconf').onclick=()=>{const r=document.getElementById('cr').value;if(!r){alert('Please select a reason.');return;}closeModal();onConfirm(r);};
+}
+
+function showSubmitModal(onConfirm){
+  const p=selectedProposal;
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" id="mo"><div class="modal fade-in">
+      <div class="modal-header"><h3>Submit proposal?</h3><button class="modal-close" id="mc">&times;</button></div>
+      <div class="modal-body">
+        <p style="font-size:14px;line-height:1.6;">You'll still need to submit this in the customer's system.
+        Status will stay at <strong>Pending Submission</strong> until that's confirmed.</p>
+        ${p.isIntegrated?`<p style="margin-top:12px;font-size:13px;color:var(--gray-600);">${p.customer} uses an integrated WO system. The submission will be sent automatically.</p>`:''}
+      </div>
+      <div class="modal-footer"><button class="btn" id="mcan">Cancel</button><button class="btn btn-primary" id="mconf">Submit</button></div>
+    </div></div>`;
+  document.getElementById('mc').onclick=closeModal;document.getElementById('mcan').onclick=closeModal;
+  document.getElementById('mo').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
+  document.getElementById('mconf').onclick=()=>{closeModal();onConfirm();};
+}
+
+function showERQModal(){
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" id="mo"><div class="modal fade-in">
+      <div class="modal-header"><h3>Create Estimate Request (ERQ)</h3><button class="modal-close" id="mc">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-group"><label>Provider</label><select id="ep"><option>ABC Plumbing Co.</option><option>XYZ Mechanical</option><option>FastFix Services</option><option>ProTech Maintenance</option></select></div>
+        <div class="form-group"><label>Service Description</label><textarea id="ed">${selectedProposal.description}</textarea></div>
+        <div class="form-group"><label>NTE Limit</label><input type="number" value="${selectedProposal.custNTE||5000}" /></div>
+        <div class="form-group"><label>Response Deadline</label><input type="date" value="2026-04-20" /></div>
+      </div>
+      <div class="modal-footer"><button class="btn" id="mcan">Cancel</button><button class="btn btn-primary" id="mconf">Send ERQ</button></div>
+    </div></div>`;
+  document.getElementById('mc').onclick=closeModal;document.getElementById('mcan').onclick=closeModal;
+  document.getElementById('mo').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
+  document.getElementById('mconf').onclick=()=>{
+    const prov=document.getElementById('ep').value;
+    const eid='ERQ-'+Math.floor(Math.random()*9000+1000);
+    selectedProposal.erqs.push({id:eid,provider:prov,status:'sent',amount:null,date:'2026-04-15',source:'Control Center',postedToBoard:true});
+    closeModal();toast(eid+' sent to '+prov,'success');render();
+  };
+}
+
+function closeModal(){document.getElementById('modal-container').innerHTML='';}
+
+function showSFToast(sfId){
+  // Remove any existing SF toast
+  document.getElementById('sf-toast')?.remove();
+  const div=document.createElement('div');
+  div.id='sf-toast';
+  div.style.cssText='position:fixed;bottom:24px;right:24px;background:white;border:1px solid #c5cae9;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);padding:16px 20px;z-index:1000;width:340px;opacity:0;transform:translateY(16px);transition:all 0.4s cubic-bezier(0.16,1,0.3,1);';
+  div.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="width:28px;height:28px;background:var(--green-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--green);flex-shrink:0;">&#10003;</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;">Proposal Qualified</div>
+        <div style="font-size:12px;color:var(--gray-500);">SF Opportunity created</div>
+      </div>
+      <button onclick="document.getElementById('sf-toast').style.opacity='0';setTimeout(()=>document.getElementById('sf-toast')?.remove(),300);" style="margin-left:auto;border:none;background:none;cursor:pointer;color:var(--gray-400);font-size:16px;">&times;</button>
+    </div>
+    <a href="https://divisionsinc.lightning.force.com/lightning/r/Opportunity/${sfId}/view" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f0f7ff;border:1px solid #bbdefb;border-radius:6px;text-decoration:none;color:#1565c0;font-size:13px;font-weight:500;transition:background 0.15s;">
+      <svg width="16" height="11" viewBox="0 0 20 14"><path d="M10 0C4.5 0 0 3.1 0 7s4.5 7 10 7 10-3.1 10-7S15.5 0 10 0z" fill="#00A1E0"/></svg>
+      View in Salesforce
+      <span style="margin-left:auto;font-size:12px;color:var(--gray-400);">${sfId}</span>
+      <span style="font-size:14px;">&#8599;</span>
+    </a>
+  `;
+  document.body.appendChild(div);
+  // Animate in
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{div.style.opacity='1';div.style.transform='translateY(0)';}));
+  // Auto-dismiss after 6s
+  setTimeout(()=>{if(document.getElementById('sf-toast')){div.style.opacity='0';div.style.transform='translateY(16px);';setTimeout(()=>div.remove(),400);}},6000);
+}
+
+render();
+</script>
+</body>
+</html>
