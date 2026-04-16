@@ -785,7 +785,7 @@ function renderDetail(){
         <div class="card">
           <div class="card-header"><h3>Submission Status</h3></div>
           <div class="card-body">
-            <div class="alert-banner success">Proposal submitted to ${p.customer}${p.isIntegrated?' via '+(p.customer==='Target'?'Maximo':'ServiceChannel'):''}. Awaiting customer decision.</div>
+            <div class="alert-banner success">Proposal submitted to ${p.customer}${p.isIntegrated&&!p.submittedManually?' via '+(p.customer==='Target'?'Maximo':'ServiceChannel'):' (manually)'}. Awaiting customer decision.</div>
           </div>
         </div>
       `:''}
@@ -914,7 +914,7 @@ function bindDetail(){
     const btn=document.getElementById(id);
     if(btn){btn.disabled=true;btn.innerHTML='&#9203; Submitting to '+sys+'...';}
     setTimeout(()=>{
-      selectedProposal.status='submitted';
+      selectedProposal.status='submitted';selectedProposal.submittedManually=false;
       toast('Submitted to '+selectedProposal.customer+' via '+sys+'.','success');
       render();
     },1500);
@@ -922,7 +922,7 @@ function bindDetail(){
 
   // Mark as submitted (non-integrated, manual, or fallback on integrated)
   ['submit-manual-btn','submit-manual-btn2','submit-manual-fallback'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
-    showSubmitModal(()=>{selectedProposal.status='submitted';toast('Marked as submitted.','success');render();});
+    showSubmitModal(()=>{selectedProposal.status='submitted';selectedProposal.submittedManually=true;toast('Marked as submitted.','success');render();});
   }));
 
   // Mark approved/rejected
