@@ -12,6 +12,9 @@
     --gray-50: #fafafa; --gray-100: #f5f5f5; --gray-200: #eeeeee; --gray-300: #e0e0e0;
     --gray-400: #bdbdbd; --gray-500: #9e9e9e; --gray-600: #757575; --gray-700: #616161;
     --gray-800: #424242; --gray-900: #212121;
+    --teal: #00897b; --teal-light: #e0f2f1; --teal-border: #80cbc4;
+    --info-light: #e1f5fe; --primary-light: #e3f2fd; --primary-border: #90caf9;
+    --success-border: #81c784; --error-border: #ef9a9a; --dark-bar: #263238;
     --header-bg: #1e293b; --sidebar-bg: #0f172a;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.06);
     --card-shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
@@ -576,173 +579,265 @@ function renderDetail(){
         </div>
       `:''}
 
-      <!-- Estimates Section -->
-      ${!isTerminal?`
-        <div class="card">
-          <div class="card-header">
-            <h3>Estimates</h3>
-            <div style="display:flex;gap:8px;">
-              ${p.qualified?`<button class="btn btn-sm btn-outline-primary" id="create-erq-btn">+ Create ERQ</button>`:''}
-            </div>
-          </div>
-          <div class="card-body" ${pricingLocked?'style="opacity:0.5;pointer-events:none;"':''}>
-            ${pricingLocked?'<div class="alert-banner info" style="opacity:1;">Qualify the proposal above before working with estimates and pricing.</div>':''}
-
-            ${p.erqs.length>0?p.erqs.map(e=>`
-              <div class="estimate-card">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                  <div>
-                    <div style="font-weight:600;">${e.status==='received'?'Estimate Received':'Estimate Request'+(e.status==='open'?' (Not Yet Posted)':' in Progress')}</div>
-                    <div style="font-size:12px;color:var(--gray-600);">${e.status==='open'?'Field started this ERQ. Review and post to provider board.':e.status==='received'?'Provider submitted an estimate. Review and apply.':'Awaiting provider response.'}</div>
-                  </div>
-                  <span class="erq-status ${e.status}">${e.status==='open'?'Not Posted':e.status==='sent'?'Awaiting Response':e.status==='received'?'Received':e.status}</span>
-                </div>
-                <div class="estimate-source">
-                  <span style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">Source</span> ${e.source}
-                  &nbsp;|&nbsp; <a style="color:var(--primary);font-weight:600;">${e.id}</a>
-                  &nbsp; <span style="color:var(--gray-500);">${e.provider}</span>
-                  ${e.amount&&e.status==='received'?`&nbsp;|&nbsp; <strong>$${e.amount}</strong>`:''}
-                </div>
-                <div style="margin-top:10px;display:flex;gap:8px;">
-                  ${e.status==='open'?`<button class="btn btn-sm btn-primary" onclick="postERQToBoard('${e.id}')">Review &amp; Post to Provider &#8594;</button>`:''}
-                  ${e.status==='received'?`<button class="btn btn-sm btn-success" onclick="useEstimate(${e.amount},'${e.id}')">Use This Estimate</button>`:''}
-                </div>
-              </div>
-            `).join(''):`<p style="color:var(--gray-500);font-size:13px;">${pricingLocked?'':'No estimate requests yet. Create an ERQ to solicit provider pricing, or self-quote below.'}</p>`}
-          </div>
-        </div>
-      `:''}
-
-      <!-- Pricing Section -->
+      <!-- Pricing Section (merged Estimates + Pricing like reference) -->
       <div class="card" ${pricingLocked?'style="position:relative;"':''}>
         ${pricingLocked?'<div style="position:absolute;inset:0;background:rgba(255,255,255,0.7);z-index:1;border-radius:8px;display:flex;align-items:center;justify-content:center;"><div style="background:var(--gray-200);padding:10px 20px;border-radius:6px;font-weight:600;color:var(--gray-600);">&#128274; Qualify proposal to unlock pricing</div></div>':''}
-        <div class="card-header"><h3>Pricing Status</h3><span style="font-size:12px;color:var(--gray-500);">Summary of line item totals below</span></div>
         <div class="card-body">
-          <div class="pricing-row">
-            <span>${p.isProactive?'Customer NTE':'Current Customer NTE'}</span>
-            <span style="font-weight:600;">${p.custNTE>0?'$'+p.custNTE.toLocaleString():'<span style="color:var(--orange);font-style:italic;">No NTE (proactive identification)</span>'}</span>
-          </div>
-          <div class="pricing-boxes">
-            <div class="pricing-box ${hasProv?'filled':''}">
-              <div class="pb-label">Provider Quote Total ${hasProv?'<span class="pb-check">&#10003;</span>':''}</div>
-              <div class="pb-value">${hasProv?'$'+p.providerQuote.toLocaleString():'&mdash;'}</div>
-              ${hasProv?`<div class="pb-hint">JOB-${p.tktId.replace('TKT-','')}</div>`:'<div class="pb-hint">Awaiting provider quote</div>'}
-            </div>
-            <div class="pricing-box ${hasCust?'filled':''}">
-              <div class="pb-label">Customer Pretax Total ${hasCust?'<span class="pb-check">&#10003;</span>':''}</div>
-              <div class="pb-value">${hasCust?'$'+p.customerPrice.toLocaleString():'&mdash;'}</div>
-              ${!hasCust?'<div class="pb-hint">Enter rates below or use an estimate</div>':'<div class="pb-hint">Sum of line item subtotals</div>'}
-            </div>
-          </div>
-          <div class="pricing-row"><span>Margin</span><span class="${margin>=0?'margin-positive':'margin-negative'}" style="font-weight:700;">${hasCust?marginPct+'%':'N/A'}${hasCust?' ($'+margin.toLocaleString()+')':''}</span></div>
 
-          <h4 style="margin:20px 0 12px;font-size:14px;font-weight:600;">Line Items</h4>
-          <p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Provider cost and customer price shown side by side for each section</p>
+          <!-- ═══ Estimates to Use (teal-branded panel) ═══ -->
+          ${!isTerminal?`
+            <div style="padding:16px;background:white;border:1px solid var(--teal-border);border-radius:4px;margin-bottom:20px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <span style="font-size:15px;font-weight:600;color:var(--teal);">Estimates to Use</span>
+              </div>
+              ${(()=>{
+                const received=p.erqs.filter(e=>e.status==='received');
+                const open=p.erqs.filter(e=>e.status==='open');
+                const sent=p.erqs.filter(e=>e.status==='sent');
+                // State 1: Estimates received
+                if(received.length>0){
+                  return `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">
+                    <thead><tr style="border-bottom:2px solid var(--gray-300);">
+                      <th style="text-align:left;padding:8px 10px;color:var(--gray-600);font-weight:600;">Estimate Number</th>
+                      <th style="text-align:left;padding:8px 10px;color:var(--gray-600);font-weight:600;">Amount</th>
+                      <th style="text-align:left;padding:8px 10px;color:var(--gray-600);font-weight:600;">Provider</th>
+                      <th style="text-align:left;padding:8px 10px;color:var(--gray-600);font-weight:600;">Received On</th>
+                      <th style="padding:8px 10px;"></th>
+                    </tr></thead>
+                    <tbody>
+                      ${received.map(e=>`<tr style="background:${p.estimateUsedId===e.id?'var(--primary-light)':'var(--teal-light)'};border-bottom:1px solid var(--gray-200);">
+                        <td style="padding:10px;font-weight:600;">${e.id}</td>
+                        <td style="padding:10px;font-weight:600;">$${e.amount.toLocaleString()}</td>
+                        <td style="padding:10px;color:var(--gray-600);">${e.provider}</td>
+                        <td style="padding:10px;color:var(--gray-600);">${e.date}</td>
+                        <td style="padding:10px;text-align:right;">
+                          ${p.estimateUsedId===e.id?'<span style="font-size:12px;font-weight:600;color:var(--green);">&#10003; Selected</span>':`<div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-sm" onclick="requestRevision('${e.id}')">Request Revision</button><button class="btn btn-sm btn-primary" onclick="useEstimate(${e.amount},'${e.id}')">Use This Estimate</button></div>`}
+                        </td>
+                      </tr>`).join('')}
+                    </tbody>
+                  </table>
+                  ${p.estimateUsedId?'<div style="font-size:12px;color:var(--green);font-style:italic;margin-top:4px;">Estimate rates applied to line items below. Review and adjust if needed.</div>':''}`;
+                }
+                // State 2: ERQ exists (open or sent), no estimates yet
+                if(open.length>0||sent.length>0){
+                  const e=open[0]||sent[0];
+                  return `<div style="padding:16px;background:var(--gray-50);border-radius:4px;border:1px solid var(--gray-200);">
+                    <div style="margin-bottom:12px;">
+                      <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${e.status==='open'?'Estimate Request in Progress':'Awaiting Provider Response'}</div>
+                      <div style="font-size:12px;color:var(--gray-600);">${e.status==='open'?'An estimate request exists on this ticket. Review and post to provider board to get estimates.':'The ERQ has been posted. Estimates will appear here as providers respond.'}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--info-light);border-radius:4px;border:1px solid #B3E5FC;">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:11px;font-weight:500;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.3px;">Source</span>
+                        <span style="font-size:12px;font-weight:600;">${e.source}</span>
+                        <span style="color:var(--gray-300);">|</span>
+                        <a style="font-size:12px;color:var(--primary);font-weight:600;">${e.id}</a>
+                        <span class="erq-status ${e.status}">${e.status==='open'?'Open':'Awaiting'}</span>
+                      </div>
+                      ${e.status==='open'?`<button class="btn btn-sm btn-primary" onclick="postERQToBoard('${e.id}')">Review &amp; Post to Provider &#8594;</button>`:''}
+                    </div>
+                  </div>`;
+                }
+                // State 3: No estimates, no ERQ
+                return `<div style="padding:16px;background:var(--gray-50);border-radius:4px;border:1px solid var(--gray-200);">
+                  <div style="font-size:13px;font-weight:600;margin-bottom:2px;">No Estimates Available</div>
+                  <div style="font-size:12px;color:var(--gray-600);margin-bottom:12px;">Get competitive estimates from providers, or enter rates manually below.</div>
+                  <button class="btn btn-sm btn-primary" id="create-erq-btn">+ Create Estimate Request</button>
+                </div>`;
+              })()}
+              ${!p.estimateUsedId?`<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--gray-300);display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--gray-500);">&#8595;</span>
+                <span style="font-size:12px;color:var(--gray-600);">Or <strong>enter rates manually</strong> in the line items below to self-quote</span>
+              </div>`:''}
+            </div>
+          `:''}
 
-          <!-- Labor & Trip -->
+          <!-- ═══ Pricing Status ═══ -->
+          <div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+              <span style="font-size:15px;font-weight:600;">Pricing Status</span>
+              <span style="font-size:11px;color:var(--gray-500);font-style:italic;">Summary of line item totals below</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--gray-100);border-radius:4px;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--gray-700);">Current Customer NTE</span>
+              <span style="font-size:13px;font-weight:600;">${p.custNTE>0?'$'+p.custNTE.toLocaleString()+'.00':'<span style=\'color:var(--orange);font-style:italic;\'>No NTE (proactive)</span>'}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;">
+              <div style="padding:14px 16px;background:${hasProv?'var(--primary-light)':'var(--gray-100)'};border-radius:4px;border:1px solid ${hasProv?'var(--primary-border)':'var(--gray-300)'};">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <span style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.3px;">Provider Quote Total</span>
+                  ${hasProv?'<span style="font-size:10px;color:var(--green);">&#10003;</span>':''}
+                </div>
+                <div style="display:flex;align-items:baseline;gap:6px;">
+                  <span style="font-size:18px;font-weight:700;color:${hasProv?'var(--primary-dark)':'var(--gray-500)'};">${hasProv?'$'+p.providerQuote.toLocaleString()+'.00':'&mdash;'}</span>
+                  ${hasProv?`<a style="font-size:11px;color:var(--primary);">JOB-${p.tktId.replace('TKT-','')}</a>`:''}
+                </div>
+                ${hasProv?'<div style="font-size:11px;color:var(--teal);margin-top:4px;font-style:italic;">Auto-calculated from section quotes</div>':'<div style="font-size:11px;color:var(--gray-500);margin-top:4px;font-style:italic;">Awaiting provider quote</div>'}
+              </div>
+              <div style="padding:14px 16px;background:${hasCust?'var(--green-light)':'var(--gray-100)'};border-radius:4px;border:1px solid ${hasCust?'var(--success-border)':'var(--gray-300)'};">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <span style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.3px;">Customer Pretax Total</span>
+                  ${hasCust?'<span style="font-size:10px;color:var(--green);">&#10003;</span>':''}
+                </div>
+                <div style="font-size:18px;font-weight:700;color:${hasCust?'var(--green)':'var(--gray-500)'};">${hasCust?'$'+p.customerPrice.toLocaleString()+'.00':'&mdash;'}</div>
+                ${hasCust?'<div style="font-size:11px;color:var(--gray-500);margin-top:4px;font-style:italic;">Sum of line item subtotals below</div>':'<div style="font-size:11px;color:var(--gray-500);margin-top:4px;font-style:italic;">Awaiting customer rates</div>'}
+              </div>
+            </div>
+            ${(hasProv&&hasCust)?`<div style="padding:10px 14px;background:${margin>=0?'var(--green-light)':'var(--red-light)'};border-radius:4px;border:1px solid ${margin>=0?'var(--success-border)':'var(--error-border)'};display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <span style="font-size:13px;">Margin</span>
+                <div style="font-size:11px;color:var(--orange);font-style:italic;margin-top:2px;">Includes other incurred costs to date ($2,760.00)</div>
+              </div>
+              <span style="font-size:16px;font-weight:700;color:${margin>=0?'var(--green)':'var(--red)'};">${marginPct}%</span>
+            </div>`:''}
+          </div>
+
+          <!-- ═══ Line Items ═══ -->
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Line Items</div>
+          <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Preview of line items with quantity and unit price</div>
+
+          <!-- Summary rows matching CC -->
+          <div style="margin-bottom:16px;padding:0 4px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-200);">
+              <span style="font-size:13px;">Current Customer NTE</span>
+              <span style="font-size:13px;font-weight:600;">${p.custNTE>0?'$'+p.custNTE.toLocaleString()+'.00':'—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-200);">
+              <div>
+                <span style="font-size:13px;">Proposal pretax total</span>
+                <div style="font-size:11px;color:var(--gray-500);margin-top:2px;font-style:italic;">${hasCust?'Please update proposal amount in below sections to reflect the correct pre-tax total':'No pricing entered yet — add line items below or use an estimate'}</div>
+              </div>
+              <span style="font-size:13px;font-weight:600;">$${hasCust?p.customerPrice.toLocaleString()+'.00':'0.00'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-200);">
+              <div>
+                <span style="font-size:13px;">Provider quote total</span>
+                <div style="font-size:11px;color:${hasProv?'var(--teal)':'var(--gray-500)'};margin-top:2px;font-style:italic;">${hasProv?'Auto-calculated from section quotes below':'Enter total provider quote, or add section-level quotes below'}</div>
+              </div>
+              ${hasProv?`<div style="display:flex;align-items:center;gap:8px;">
+                <select style="padding:4px 8px;border-radius:4px;border:1px solid var(--gray-300);font-size:12px;"><option>JOB-${p.tktId.replace('TKT-','')}</option></select>
+                <span style="font-size:13px;font-weight:600;">$${p.providerQuote.toLocaleString()}.00</span>
+                <span style="font-size:10px;color:var(--green);font-style:italic;margin-left:4px;">auto</span>
+              </div>`:`<div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:11px;color:var(--gray-500);">$</span>
+                <input type="number" placeholder="0.00" style="width:80px;padding:6px 8px;border-radius:4px;border:1px solid var(--gray-300);font-size:13px;font-weight:600;text-align:right;" />
+              </div>`}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-200);">
+              <div>
+                <span style="font-size:13px;">Margin</span>
+                ${(hasProv||hasCust)?`<div style="font-size:11px;color:var(--orange);margin-top:2px;font-style:italic;">Includes other incurred costs to date ($2,760.00)</div>`:''}
+              </div>
+              <span style="font-size:13px;font-weight:600;">${(hasCust||hasProv)?marginPct+'%':'N/A'}</span>
+            </div>
+            ${(hasCust||hasProv)?`<div style="font-size:13px;font-weight:700;color:${margin<0?'var(--red)':'var(--green)'};text-align:right;padding-top:4px;">${marginPct}%</div>`:''}
+          </div>
+
+          <!-- Labor And Trip Accordion -->
           <div class="line-section">
-            <div class="line-section-header">
-              <span>Labor And Trip</span>
-              <span>
-                <span style="color:var(--gray-500);font-weight:400;">Customer</span> <strong>$${(p.laborHours*p.laborRate).toLocaleString()}</strong>
-                &nbsp;&nbsp;
-                <span style="color:var(--gray-500);font-weight:400;">Provider</span> <strong>$${hasProv?p.providerQuote.toLocaleString():'0.00'}</strong>
-                &nbsp;&nbsp;
-                <span style="color:var(--gray-500);font-weight:400;">Margin</span> <strong class="${margin>=0?'margin-positive':'margin-negative'}">${hasCust?marginPct+'%':'N/A'}</strong>
+            <div class="line-section-header" style="flex-wrap:wrap;">
+              <span>&#9660; Labor And Trip</span>
+              <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;">
+                <span>Labor And Trip Margin <strong>${hasCust?marginPct+'%':'N/A'}</strong></span>
+                <span>Total Margin <strong style="color:${(!hasCust&&!hasProv)?'var(--gray-500)':(margin<0?'var(--red)':'var(--green)')};">${(!hasCust&&!hasProv)?'N/A':marginPct+'%'}</strong></span>
+                <span>Labor &amp; Trip subtotal <strong>$${(p.laborHours*p.laborRate).toLocaleString()}.00</strong></span>
+                <span>Provider quote <strong>$${hasProv?p.providerQuote.toLocaleString()+'.00':'0.00'}</strong></span>
               </span>
             </div>
             <div class="line-section-body">
-              <div style="font-weight:600;margin-bottom:8px;">Labor (Customer Rates)</div>
-              <table class="pricing-table"><thead><tr><th>Type</th><th>Tech</th><th>Hours</th><th>Rate &amp; Rate Type</th><th>Total</th></tr></thead>
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Labor</div>
+              <table class="pricing-table"><thead><tr style="background:var(--gray-50);"><th>Type &amp; Description</th><th>Tech</th><th>Hours</th><th>Rate &amp; Rate Type</th><th style="text-align:right;">Total</th><th></th></tr></thead>
               <tbody><tr>
-                <td><select style="padding:4px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>Regular</option><option>Emergency</option><option>After Hours</option></select></td>
-                <td><input type="number" value="1" style="width:50px;" /></td>
-                <td><input type="number" value="${p.laborHours}" id="labor-hours" /></td>
-                <td>
-                  ${p.hasContractRates?`<input type="number" value="${p.laborRate}" class="locked" readonly title="Contract rate (locked)" />`:`<input type="number" value="${p.laborRate}" id="labor-rate" />`}
-                  ${p.hasContractRates?'<span class="locked-notice">&#128274; Contract rate</span>':''}
-                  <select style="padding:4px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;margin-left:4px;"><option>Normal</option><option>OT</option><option>DT</option></select>
-                </td>
-                <td style="font-weight:600;" id="labor-total">$${(p.laborHours*p.laborRate).toLocaleString()}</td>
+                <td><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--gray-500);">Labor Type</span><select style="padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;"><option>Regular</option></select></div></td>
+                <td><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--gray-500);">Tech</span><input type="number" value="1" style="width:40px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;text-align:center;" /></div></td>
+                <td><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--gray-500);">Hours</span><input type="number" value="${p.laborHours}" id="labor-hours" style="width:40px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;text-align:center;" /></div></td>
+                <td><div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;color:var(--gray-500);">Rate</span><input type="number" value="${p.laborRate}" id="labor-rate" ${p.hasContractRates?'class="locked" readonly':''} style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;text-align:center;" /><span style="font-size:11px;color:var(--gray-500);margin-left:4px;">Rate Type</span><select style="padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;"><option>Normal</option></select></div>${p.hasContractRates?'<div style="font-size:10px;color:var(--orange);margin-top:4px;">&#128274; Contract rate (locked)</div>':''}</td>
+                <td style="text-align:right;font-weight:600;" id="labor-total">$${(p.laborHours*p.laborRate).toLocaleString()}.00</td>
+                <td style="text-align:right;"><button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">&#128465;</button></td>
               </tr></tbody></table>
-              <div class="add-line">+ Add labor line</div>
-
-              <div style="display:flex;align-items:center;gap:16px;padding:10px 12px;background:var(--gray-50);border-radius:6px;margin:12px 0;font-size:13px;">
-                <span style="font-weight:600;color:var(--gray-600);min-width:130px;">Provider labor quote</span>
-                <span style="font-weight:400;color:var(--gray-500);">$</span>
-                <input type="number" value="${hasProv?p.providerQuote:''}" placeholder="Enter or use estimate" style="width:140px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;" />
-                <span style="margin-left:auto;font-size:12px;color:var(--gray-500);">Labor margin: <strong>${hasCust?marginPct+'%':'N/A'}</strong></span>
+              <div class="add-line">+ Add</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-600);">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span>Provider labor quote</span>
+                  <input type="number" value="${hasProv?p.providerQuote:''}" placeholder="$" style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;" />
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <span>Labor margin <strong>${hasCust&&hasProv?marginPct+'%':'N/A'}</strong></span>
+                  <span>Labor subtotal <strong style="color:var(--gray-900);">$${(p.laborHours*p.laborRate).toLocaleString()}.00</strong></span>
+                </div>
               </div>
 
-              <div style="font-weight:600;margin:16px 0 8px;">Trip (Customer Rates)</div>
-              <table class="pricing-table"><thead><tr><th>Type</th><th>Quantity</th><th>Rate &amp; Rate Type</th><th>Total</th></tr></thead>
-              <tbody><tr><td colspan="4" style="color:var(--gray-400);font-style:italic;text-align:center;">No trip items added</td></tr></tbody></table>
-              <div class="add-line">+ Add trip line</div>
-
-              <div style="display:flex;align-items:center;gap:16px;padding:10px 12px;background:var(--gray-50);border-radius:6px;margin:12px 0;font-size:13px;">
-                <span style="font-weight:600;color:var(--gray-600);min-width:130px;">Provider trip quote</span>
-                <span style="font-weight:400;color:var(--gray-500);">$</span>
-                <input type="number" value="${p.tripCharge}" style="width:140px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;" />
+              <div style="font-size:13px;font-weight:600;margin:20px 0 8px;">Trip</div>
+              <table class="pricing-table"><thead><tr style="background:var(--gray-50);"><th>Type &amp; Description</th><th>Quantity</th><th>Rate &amp; Rate Type</th><th style="text-align:right;">Total</th><th style="text-align:right;">Warnings</th></tr></thead>
+              <tbody><tr><td colspan="5" style="padding:16px;text-align:center;color:var(--gray-500);font-size:12px;font-style:italic;">No trip items added</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-600);">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span>Provider trip quote</span>
+                  <input type="number" value="${p.tripCharge}" placeholder="$" style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;" />
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <span>Trip margin <strong>N/A</strong></span>
+                  <span>Trip subtotal <strong style="color:var(--gray-900);">$0.00</strong></span>
+                </div>
               </div>
+
+              ${isAP?`<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200);">
+                <button class="btn btn-sm">Cancel</button>
+                <button class="btn btn-sm btn-primary" id="save-pricing-btn-inline" ${hasProv?'':'disabled'}>Save &amp; Next</button>
+              </div>`:''}
             </div>
           </div>
 
-          <!-- Material & Equipment -->
+          <!-- Material And Equipment Accordion (collapsed) -->
           <div class="line-section">
-            <div class="line-section-header">
-              <span>Material And Equipment</span>
-              <span>
-                <span style="color:var(--gray-500);font-weight:400;">Customer</span> <strong>$0.00</strong>
-                &nbsp;&nbsp;
-                <span style="color:var(--gray-500);font-weight:400;">Provider</span> <strong>$0.00</strong>
-              </span>
-            </div>
-            <div class="line-section-body">
-              <div style="font-weight:600;margin-bottom:8px;">Material (Customer Rates)</div>
-              <table class="pricing-table"><thead><tr><th>Type</th><th>Qty</th><th>Unit</th><th>Cost/Unit</th><th>Markup</th><th>Total</th></tr></thead>
-              <tbody><tr><td colspan="6" style="color:var(--gray-400);font-style:italic;text-align:center;">No material items</td></tr></tbody></table>
-              <div class="add-line">+ Add material line</div>
-
-              <div style="display:flex;align-items:center;gap:16px;padding:10px 12px;background:var(--gray-50);border-radius:6px;margin:12px 0;font-size:13px;">
-                <span style="font-weight:600;color:var(--gray-600);min-width:130px;">Provider material quote</span>
-                <span style="font-weight:400;color:var(--gray-500);">$</span>
-                <input type="number" value="" placeholder="0.00" style="width:140px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;" />
-              </div>
-
-              <div style="font-weight:600;margin:16px 0 8px;">Equipment (Customer Rates)</div>
-              <table class="pricing-table"><thead><tr><th>Type</th><th>Qty</th><th>Unit</th><th>Cost/Unit</th><th>Markup</th><th>Total</th></tr></thead>
-              <tbody><tr><td colspan="6" style="color:var(--gray-400);font-style:italic;text-align:center;">No equipment items</td></tr></tbody></table>
-              <div class="add-line">+ Add equipment line</div>
-
-              <div style="display:flex;align-items:center;gap:16px;padding:10px 12px;background:var(--gray-50);border-radius:6px;margin:12px 0;font-size:13px;">
-                <span style="font-weight:600;color:var(--gray-600);min-width:130px;">Provider equip. quote</span>
-                <span style="font-weight:400;color:var(--gray-500);">$</span>
-                <input type="number" value="" placeholder="0.00" style="width:140px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Totals -->
-          <div class="line-section">
-            <div class="line-section-header"><span>Pretax total</span>
-              <span>
-                <span style="color:var(--gray-500);font-weight:400;">Customer</span> <strong>$${hasCust?p.customerPrice.toLocaleString():'0.00'}</strong>
-                &nbsp;&nbsp;
-                <span style="color:var(--gray-500);font-weight:400;">Provider</span> <strong>$${hasProv?p.providerQuote.toLocaleString():'0.00'}</strong>
-                &nbsp;&nbsp;
-                <span style="color:var(--gray-500);font-weight:400;">Margin</span> <strong class="${margin>=0?'margin-positive':'margin-negative'}">${hasCust?marginPct+'%':'N/A'}</strong>
+            <div class="line-section-header" style="flex-wrap:wrap;">
+              <span>&#9654; Material And Equipment</span>
+              <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;">
+                <span>Material And Equipment Margin <strong>N/A</strong></span>
+                <span>Total Margin <strong style="color:${(!hasCust&&!hasProv)?'var(--gray-500)':(margin<0?'var(--red)':'var(--green)')};">${(!hasCust&&!hasProv)?'N/A':marginPct+'%'}</strong></span>
+                <span>Material &amp; Equipment subtotal <strong>$0.00</strong></span>
+                <span>Provider quote <strong>$0.00</strong></span>
               </span>
             </div>
           </div>
-          <div class="line-section"><div class="line-section-header"><span>&#9654; Tax</span><span style="font-weight:600;">$${hasCust?Math.floor(p.customerPrice*0.08).toLocaleString():'0.00'}</span></div></div>
-          <div class="line-section"><div class="line-section-header"><span>&#9654; Photos &amp; Documents</span><span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span></div></div>
-          <div class="total-bar"><span>Total</span><span>$${hasCust?Math.floor(p.customerPrice*1.08).toLocaleString():'0.00'}</span></div>
 
-          <!-- Save / Preview CTA at very bottom of pricing -->
-          ${isAP?`<div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+          <!-- Pretax total Accordion (collapsed) -->
+          <div class="line-section">
+            <div class="line-section-header" style="flex-wrap:wrap;">
+              <span>&#9654; Pretax total</span>
+              <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+                <div>
+                  <div style="font-size:10px;color:var(--gray-500);">Margin calculated with the pretax dollar amount</div>
+                  <div>Current margin <strong style="color:${(!hasCust&&!hasProv)?'var(--gray-500)':(margin<0?'var(--red)':'var(--green)')};">${(!hasCust&&!hasProv)?'N/A':marginPct+'%'}</strong>${(hasCust||hasProv)?' <span style="font-size:10px;color:var(--orange);font-style:italic;">Includes other incurred costs to date ($2,760.00)</span>':''}</div>
+                </div>
+                <span>Pretax subtotal <strong>$${hasCust?p.customerPrice.toLocaleString()+'.00':'0.00'}</strong></span>
+                <span>Provider quote <strong>$${hasProv?p.providerQuote.toLocaleString()+'.00':'0.00'}</strong></span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Tax -->
+          <div class="line-section">
+            <div class="line-section-header"><span>&#9654; Tax</span><span style="font-weight:600;font-size:13px;">$${hasCust?(p.customerPrice*0.0826).toFixed(2):'0.00'}</span></div>
+          </div>
+
+          <!-- Photos & Documents -->
+          <div class="line-section">
+            <div class="line-section-header"><span>&#9654; Photos &amp; Documents</span><span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span></div>
+          </div>
+
+          <!-- Dark total bar -->
+          <div style="padding:12px 16px;background:var(--dark-bar);border-radius:4px;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <span style="font-size:14px;font-weight:600;color:white;">Total</span>
+            <span style="font-size:16px;font-weight:700;color:white;">$${hasCust?(p.customerPrice*1.0826).toFixed(2):'0.00'}</span>
+          </div>
+
+          <!-- Bottom Save CTA -->
+          ${isAP?`<div style="margin-top:20px;display:flex;justify-content:flex-end;align-items:center;gap:8px;">
+            ${!hasProv?'<span style="font-size:12px;color:var(--orange);margin-right:4px;">Provider pricing required before saving</span>':''}
             <button class="btn">Cancel</button>
             <button class="btn btn-primary btn-lg" id="save-pricing-btn" ${hasProv?'':'disabled'}>Save</button>
-            ${!hasProv?'<span style="font-size:12px;color:var(--orange);margin-left:8px;">Provider pricing required before saving</span>':''}
           </div>`:''}
         </div>
       </div>
@@ -902,11 +997,11 @@ function bindDetail(){
   })));
 
   // Save pricing (from Awaiting Pricing) - advances to Pending Submission
-  document.getElementById('save-pricing-btn')?.addEventListener('click',()=>{
+  ['save-pricing-btn','save-pricing-btn-inline'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
     selectedProposal.status='pending-submission';
     toast('Pricing saved. Moved to Pending Submission.','success');
     render();
-  });
+  }));
 
   // Submit via integration
   ['submit-integrated-btn','submit-integrated-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
@@ -960,8 +1055,14 @@ function goBack(){currentView='dashboard';selectedProposal=null;showPreview=fals
 function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',3000);}
 
 function useEstimate(amount,erqId){
-  selectedProposal.providerQuote=amount;selectedProposal.estimatesReceived=Math.max(selectedProposal.estimatesReceived,1);
-  toast('Estimate from '+erqId+' ($'+amount+') applied to provider pricing.','success');render();
+  selectedProposal.providerQuote=amount;
+  selectedProposal.estimatesReceived=Math.max(selectedProposal.estimatesReceived,1);
+  selectedProposal.estimateUsedId=erqId;
+  toast('Estimate from '+erqId+' ($'+amount+') applied to line items below.','success');render();
+}
+
+function requestRevision(erqId){
+  toast('Revision requested for '+erqId+'. Provider has been notified.','success');
 }
 
 function postERQToBoard(erqId){
