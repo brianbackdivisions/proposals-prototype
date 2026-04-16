@@ -64,6 +64,7 @@
   .filter-chip { padding:6px 12px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px; background:white; cursor:pointer; display:flex; align-items:center; gap:4px; }
   .filter-chip:hover { border-color:var(--gray-400); }
   .filter-chip.active { border-color:var(--primary); background:#e8f0fe; color:var(--primary); }
+  .dropdown-item:hover { background:var(--gray-50) !important; }
 
   .pipeline-card { margin:0 24px 16px; background:white; border-radius:8px; box-shadow:var(--card-shadow); overflow:hidden; }
   .pipeline-header { padding:16px 20px 8px; display:flex; justify-content:space-between; align-items:center; }
@@ -343,6 +344,9 @@ function generateProposals(){
 generateProposals();
 
 let currentView='dashboard',selectedStage=null,selectedProposal=null;
+let filters={customer:null,serviceLine:null,serviceType:null,assignee:null,createdBy:null};
+let openDropdown=null;
+let searchQuery='';
 
 function render(){
   const el=document.getElementById('app-content');
@@ -350,16 +354,59 @@ function render(){
   else{el.innerHTML=renderDetail();bindDetail();}
 }
 
+function getFilteredProposals(){
+  let result=[...proposals];
+  if(selectedStage) result=result.filter(p=>p.status===selectedStage);
+  if(filters.customer) result=result.filter(p=>p.customer===filters.customer);
+  if(filters.serviceLine) result=result.filter(p=>p.serviceLine===filters.serviceLine);
+  if(filters.serviceType) result=result.filter(p=>p.serviceType===filters.serviceType);
+  if(filters.assignee) result=result.filter(p=>p.assignee===filters.assignee);
+  if(filters.createdBy) result=result.filter(p=>p.creatorType===filters.createdBy);
+  if(searchQuery){const q=searchQuery.toLowerCase();result=result.filter(p=>p.id.toLowerCase().includes(q)||p.tktId.toLowerCase().includes(q)||p.location.toLowerCase().includes(q)||p.customer.toLowerCase().includes(q)||p.description.toLowerCase().includes(q));}
+  if(sortField){result.sort((a,b)=>{let av=a[sortField],bv=b[sortField];if(typeof av==='string')return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);return sortDir==='asc'?av-bv:bv-av;});}
+  return result;
+}
+
+function getUniqueValues(field){return[...new Set(proposals.map(p=>p[field]))].sort();}
+
+function hasActiveFilters(){return selectedStage||Object.values(filters).some(v=>v)||searchQuery;}
+
+function renderFilterChip(label,filterKey,values,displayFn){
+  const active=filters[filterKey];
+  const isOpen=openDropdown===filterKey;
+  return `<div class="filter-chip ${active?'active':''}" data-filter="${filterKey}" style="position:relative;">
+    ${active?'':label} ${active?`${displayFn?displayFn(active):active}`:''}
+    <span style="font-size:10px;color:${active?'var(--primary)':'var(--gray-500)'}">${active?'&times;':'&#9662;'}</span>
+    ${isOpen?`<div style="position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--gray-200);border-radius:8px;box-shadow:var(--card-shadow-lg);min-width:200px;max-height:280px;overflow-y:auto;z-index:100;">
+      <div style="padding:8px 12px;border-bottom:1px solid var(--gray-100);font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">${label}</div>
+      ${values.map(v=>`<div class="dropdown-item" data-filter="${filterKey}" data-value="${v}" style="padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;${filters[filterKey]===v?'background:#e8f0fe;color:var(--primary);font-weight:600;':''}">
+        ${filters[filterKey]===v?'&#10003; ':''}${displayFn?displayFn(v):v}
+      </div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+
 function renderDashboard(){
   const sc={},sv={};
   STAGES.forEach(s=>{sc[s.key]=0;sv[s.key]=0;});
   let awaitingWithEst=0;
   proposals.forEach(p=>{sc[p.status]++;sv[p.status]+=p.customerPrice||0;if(p.status==='awaiting-pricing'&&p.estimatesReceived>0)awaitingWithEst++;});
-  let filtered=selectedStage?proposals.filter(p=>p.status===selectedStage):[...proposals];
-  if(sortField){filtered.sort((a,b)=>{let av=a[sortField],bv=b[sortField];if(typeof av==='string')return sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);return sortDir==='asc'?av-bv:bv-av;});}
+  const filtered=getFilteredProposals();
 
   const fmt=v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+Math.floor(v/1e3)+'K':'$'+v;
   const sortIcon=f=>sortField===f?(sortDir==='asc'?' &#9650;':' &#9660;'):'';
+
+  const creatorLabel=v=>v==='field'?'Field':v==='nat'?'NAT':'Provider';
+
+  // Active filter tags
+  const activeTags=[];
+  if(selectedStage) activeTags.push({key:'status',label:STAGES.find(s=>s.key===selectedStage).label});
+  if(filters.customer) activeTags.push({key:'customer',label:filters.customer});
+  if(filters.serviceLine) activeTags.push({key:'serviceLine',label:filters.serviceLine});
+  if(filters.serviceType) activeTags.push({key:'serviceType',label:filters.serviceType});
+  if(filters.assignee) activeTags.push({key:'assignee',label:filters.assignee});
+  if(filters.createdBy) activeTags.push({key:'createdBy',label:creatorLabel(filters.createdBy)});
+  if(searchQuery) activeTags.push({key:'search',label:'"'+searchQuery+'"'});
 
   return `
     <div class="breadcrumb"><a>Pulse</a> <span>></span> <span>Proposals</span></div>
@@ -369,13 +416,21 @@ function renderDashboard(){
       <div class="page-actions"><span class="page-time">${new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span></div>
     </div>
     <div class="filters">
-      <div class="filter-chip">Customer <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
-      <div class="filter-chip">Service Line <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
-      <div class="filter-chip">Service Type <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
-      <div class="filter-chip">Assignee <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      ${renderFilterChip('Customer','customer',getUniqueValues('customer'))}
+      ${renderFilterChip('Service Line','serviceLine',getUniqueValues('serviceLine'))}
+      ${renderFilterChip('Service Type','serviceType',getUniqueValues('serviceType'))}
+      ${renderFilterChip('Assignee','assignee',getUniqueValues('assignee'))}
       <div class="filter-chip">&#128197; Date Range</div>
-      <div class="filter-chip">Created By <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
-      <div class="filter-chip ${selectedStage?'active':''}">Status <span style="font-size:10px;color:var(--gray-500)">&#9662;</span></div>
+      ${renderFilterChip('Created By','createdBy',['field','nat','provider'],creatorLabel)}
+      <div class="filter-chip ${selectedStage?'active':''}" data-filter="status" style="position:relative;">
+        ${selectedStage?STAGES.find(s=>s.key===selectedStage).label:'Status'} <span style="font-size:10px;color:${selectedStage?'var(--primary)':'var(--gray-500)'}">${selectedStage?'&times;':'&#9662;'}</span>
+        ${openDropdown==='status'?`<div style="position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid var(--gray-200);border-radius:8px;box-shadow:var(--card-shadow-lg);min-width:200px;z-index:100;">
+          <div style="padding:8px 12px;border-bottom:1px solid var(--gray-100);font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">Status</div>
+          ${STAGES.map(s=>`<div class="dropdown-item" data-filter="status" data-value="${s.key}" style="padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;${selectedStage===s.key?'background:#e8f0fe;color:var(--primary);font-weight:600;':''}">
+            ${selectedStage===s.key?'&#10003; ':''}<span class="status-chip ${s.key}" style="font-size:11px;padding:2px 8px;">${s.label}</span>
+          </div>`).join('')}
+        </div>`:''}
+      </div>
     </div>
     <div class="pipeline-card">
       <div class="pipeline-header"><div class="pipeline-title">Proposal Pipeline</div><div class="pipeline-hint">Click a stage to filter</div></div>
@@ -387,9 +442,9 @@ function renderDashboard(){
         </div>${s.key!=='cancelled'?'<div class="pipeline-arrow">&#9654;</div>':''}`).join('')}
       </div>
     </div>
-    ${selectedStage?`<div class="active-filter-banner fade-in"><span>Filtered by:</span><span class="filter-tag">${STAGES.find(s=>s.key===selectedStage).label} <span class="x" id="clear-filter">&times;</span></span><span class="clear" id="clear-all">Clear all</span></div>`:''}
+    ${activeTags.length>0?`<div class="active-filter-banner fade-in"><span>Filtered by:</span>${activeTags.map(t=>`<span class="filter-tag">${t.label} <span class="x" data-clear="${t.key}">&times;</span></span>`).join('')}<span class="clear" id="clear-all">Clear all</span></div>`:''}
     <div class="table-card">
-      <div class="table-header"><div class="table-header-left"><div class="table-count">Proposals <span>${filtered.length} found</span></div><input class="search-input" placeholder="Search by ID or location..." /></div><button class="btn btn-sm">&#8681; Export CSV</button></div>
+      <div class="table-header"><div class="table-header-left"><div class="table-count">Proposals <span>${filtered.length} found</span></div><input class="search-input" id="search-input" placeholder="Search by ID, customer, or location..." value="${searchQuery}" /></div><button class="btn btn-sm">&#8681; Export CSV</button></div>
       <div style="overflow-x:auto;">
         <table><thead><tr>
           <th style="width:32px"></th>
@@ -400,6 +455,7 @@ function renderDashboard(){
           <th class="sortable" data-sort="estimatesReceived">Est. Received${sortIcon('estimatesReceived')}</th>
           <th>Status</th>
         </tr></thead><tbody>
+          ${filtered.length===0?'<tr><td colspan="14" style="text-align:center;padding:32px;color:var(--gray-500);font-style:italic;">No proposals match your filters</td></tr>':''}
           ${filtered.slice(0,50).map(p=>{
             const dc=p.daysInStage<=5?'days-ok':p.daysInStage<=14?'days-warn':'days-critical';
             return `<tr data-pid="${p.id}">
@@ -692,11 +748,70 @@ function renderDetail(){
 }
 
 function bindDashboard(){
-  document.querySelectorAll('.pipeline-stage').forEach(el=>el.addEventListener('click',()=>{const s=el.dataset.stage;selectedStage=selectedStage===s?null:s;render();}));
-  document.getElementById('clear-filter')?.addEventListener('click',()=>{selectedStage=null;render();});
-  document.getElementById('clear-all')?.addEventListener('click',()=>{selectedStage=null;render();});
+  // Pipeline stage clicks
+  document.querySelectorAll('.pipeline-stage').forEach(el=>el.addEventListener('click',()=>{const s=el.dataset.stage;selectedStage=selectedStage===s?null:s;openDropdown=null;render();}));
+
+  // Filter chip clicks (open/close dropdowns, or clear if active)
+  document.querySelectorAll('.filter-chip[data-filter]').forEach(chip=>{
+    chip.addEventListener('click',e=>{
+      if(e.target.closest('.dropdown-item'))return; // let dropdown items handle themselves
+      const key=chip.dataset.filter;
+      // If filter is active and user clicks the X, clear it
+      if(key==='status'&&selectedStage){selectedStage=null;openDropdown=null;render();return;}
+      if(key!=='status'&&filters[key]){filters[key]=null;openDropdown=null;render();return;}
+      // Otherwise toggle dropdown
+      openDropdown=openDropdown===key?null:key;
+      render();
+    });
+  });
+
+  // Dropdown item clicks
+  document.querySelectorAll('.dropdown-item').forEach(item=>{
+    item.addEventListener('click',e=>{
+      e.stopPropagation();
+      const key=item.dataset.filter;
+      const val=item.dataset.value;
+      if(key==='status'){selectedStage=selectedStage===val?null:val;}
+      else{filters[key]=filters[key]===val?null:val;}
+      openDropdown=null;
+      render();
+    });
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click',e=>{
+    if(openDropdown&&!e.target.closest('.filter-chip[data-filter]')){openDropdown=null;render();}
+  },{once:true});
+
+  // Clear individual filter tags in the banner
+  document.querySelectorAll('[data-clear]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    const key=e.target.dataset.clear;
+    if(key==='status')selectedStage=null;
+    else if(key==='search')searchQuery='';
+    else filters[key]=null;
+    openDropdown=null;
+    render();
+  }));
+
+  // Clear all
+  document.getElementById('clear-all')?.addEventListener('click',()=>{selectedStage=null;filters={customer:null,serviceLine:null,serviceType:null,assignee:null,createdBy:null};searchQuery='';openDropdown=null;render();});
+
+  // Search input
+  const searchEl=document.getElementById('search-input');
+  if(searchEl){
+    searchEl.addEventListener('input',e=>{searchQuery=e.target.value;render();
+      // Re-focus and restore cursor position
+      const newEl=document.getElementById('search-input');
+      if(newEl){newEl.focus();newEl.setSelectionRange(newEl.value.length,newEl.value.length);}
+    });
+  }
+
+  // Sort headers
   document.querySelectorAll('thead th.sortable').forEach(th=>th.addEventListener('click',()=>{const f=th.dataset.sort;if(sortField===f)sortDir=sortDir==='asc'?'desc':'asc';else{sortField=f;sortDir='desc';}render();}));
-  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';render();}));
+
+  // Row clicks
+  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';openDropdown=null;render();}));
 }
 
 function bindDetail(){
