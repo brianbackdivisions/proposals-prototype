@@ -753,7 +753,8 @@ function renderDetail(){
           <div class="card-header"><h3>Submit to Customer</h3></div>
           <div class="card-body">
             <div class="alert-banner info">${p.customer} uses <strong>${p.customer==='Target'?'Maximo':'ServiceChannel'}</strong> for work order management. Submit directly through the integration.</div>
-            <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;">
+              <button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>
               <button class="btn btn-primary btn-lg" id="submit-integrated-btn">Submit via ${p.customer==='Target'?'Maximo':'ServiceChannel'} &#8594;</button>
             </div>
           </div>
@@ -768,6 +769,9 @@ function renderDetail(){
             <div class="submit-card" style="margin-top:16px;">
               <div><div class="sc-text">Already submitted?</div><div class="sc-sub">Confirm to update status and begin tracking customer response.</div></div>
               <button class="btn btn-orange btn-lg" id="submit-manual-btn">Mark as Submitted</button>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>
             </div>
           </div>
         </div>
@@ -793,10 +797,8 @@ function renderDetail(){
 
       <!-- Bottom Actions -->
       <div class="bottom-actions">
-        <div>${!isTerminal?'<button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>':''}</div>
+        <div>${!isTerminal&&!isPS?'<button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>':''}</div>
         <div style="display:flex;gap:8px;">
-          ${isPS&&p.isIntegrated?`<button class="btn btn-primary btn-lg" id="submit-integrated-btn2">Submit via ${p.customer==='Target'?'Maximo':'ServiceChannel'} &#8594;</button>`:''}
-          ${isPS&&!p.isIntegrated?'<button class="btn btn-orange btn-lg" id="submit-manual-btn2">Mark as Submitted</button>':''}
           ${isSub?'<button class="btn btn-danger-filled" id="reject-btn2">Mark Rejected</button><button class="btn btn-success btn-lg" id="approve-btn2">Mark Approved</button>':''}
           ${isPR?'<button class="btn btn-success btn-lg" id="approve-btn3">&#10003; Approve</button>':''}
         </div>
