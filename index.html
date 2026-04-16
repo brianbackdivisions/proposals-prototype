@@ -741,7 +741,8 @@ function renderDetail(){
           <!-- Save / Preview CTA at very bottom of pricing -->
           ${isAP?`<div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
             <button class="btn">Cancel</button>
-            <button class="btn btn-primary btn-lg" id="preview-proposal-btn">Preview Proposal &#8594;</button>
+            <button class="btn btn-primary btn-lg" id="save-pricing-btn" ${hasProv?'':'disabled'}>Save</button>
+            ${!hasProv?'<span style="font-size:12px;color:var(--orange);margin-left:8px;">Provider pricing required before saving</span>':''}
           </div>`:''}
         </div>
       </div>
@@ -889,8 +890,8 @@ function bindDetail(){
     selectedProposal.status='cancelled';toast('Proposal cancelled.','error');render();
   })));
 
-  // Preview proposal (from Awaiting Pricing) - advances to Pending Submission
-  document.getElementById('preview-proposal-btn')?.addEventListener('click',()=>{
+  // Save pricing (from Awaiting Pricing) - advances to Pending Submission
+  document.getElementById('save-pricing-btn')?.addEventListener('click',()=>{
     selectedProposal.status='pending-submission';
     toast('Pricing saved. Moved to Pending Submission.','success');
     render();
