@@ -196,7 +196,8 @@
   .pricing-row:last-child { border-bottom:none; }
 
   .line-section { margin-bottom:16px; border:1px solid var(--gray-200); border-radius:8px; overflow:hidden; }
-  .line-section-header { padding:12px 16px; background:var(--gray-50); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); font-size:13px; font-weight:600; cursor:pointer; }
+  .line-section-header { padding:12px 16px; background:var(--gray-50); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--gray-200); font-size:13px; font-weight:600; cursor:pointer; user-select:none; }
+  .line-section-header.accordion-header:hover { background:#f0f0f0; }
   .line-section-body { padding:16px; }
   .pricing-table { width:100%; border-collapse:collapse; }
   .pricing-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:600; color:var(--gray-500); text-transform:uppercase; border-bottom:1px solid var(--gray-200); }
@@ -347,6 +348,7 @@ function generateProposals(){
 generateProposals();
 
 let currentView='dashboard',selectedStage=null,selectedProposal=null;
+let accordions={labor:true,matEquip:false,pretax:false,tax:false,photos:false};
 let filters={customer:null,serviceLine:null,serviceType:null,assignee:null,createdBy:null};
 let openDropdown=null;
 let searchQuery='';
@@ -735,8 +737,8 @@ function renderDetail(){
 
           <!-- Labor And Trip Accordion -->
           <div class="line-section">
-            <div class="line-section-header" style="flex-wrap:wrap;">
-              <span>&#9660; Labor And Trip</span>
+            <div class="line-section-header accordion-header" data-accordion="labor" style="flex-wrap:wrap;">
+              <span>${accordions.labor?'&#9660;':'&#9654;'} Labor And Trip</span>
               <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;">
                 <span>Labor And Trip Margin <strong>${hasCust?marginPct+'%':'N/A'}</strong></span>
                 <span>Total Margin <strong style="color:${(!hasCust&&!hasProv)?'var(--gray-500)':(margin<0?'var(--red)':'var(--green)')};">${(!hasCust&&!hasProv)?'N/A':marginPct+'%'}</strong></span>
@@ -744,7 +746,7 @@ function renderDetail(){
                 <span>Provider quote <strong>$${hasProv?p.providerQuote.toLocaleString()+'.00':'0.00'}</strong></span>
               </span>
             </div>
-            <div class="line-section-body">
+            ${accordions.labor?`<div class="line-section-body">
               <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Labor</div>
               <table class="pricing-table"><thead><tr style="background:var(--gray-50);"><th>Type &amp; Description</th><th>Tech</th><th>Hours</th><th>Rate &amp; Rate Type</th><th style="text-align:right;">Total</th><th></th></tr></thead>
               <tbody><tr>
@@ -786,13 +788,13 @@ function renderDetail(){
                 <button class="btn btn-sm">Cancel</button>
                 <button class="btn btn-sm btn-primary" id="save-pricing-btn-inline" ${hasProv?'':'disabled'}>Save &amp; Next</button>
               </div>`:''}
-            </div>
+            </div>`:''}
           </div>
 
-          <!-- Material And Equipment Accordion (collapsed) -->
+          <!-- Material And Equipment Accordion -->
           <div class="line-section">
-            <div class="line-section-header" style="flex-wrap:wrap;">
-              <span>&#9654; Material And Equipment</span>
+            <div class="line-section-header accordion-header" data-accordion="matEquip" style="flex-wrap:wrap;">
+              <span>${accordions.matEquip?'&#9660;':'&#9654;'} Material And Equipment</span>
               <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;">
                 <span>Material And Equipment Margin <strong>N/A</strong></span>
                 <span>Total Margin <strong style="color:${(!hasCust&&!hasProv)?'var(--gray-500)':(margin<0?'var(--red)':'var(--green)')};">${(!hasCust&&!hasProv)?'N/A':marginPct+'%'}</strong></span>
@@ -800,12 +802,48 @@ function renderDetail(){
                 <span>Provider quote <strong>$0.00</strong></span>
               </span>
             </div>
+            ${accordions.matEquip?`<div class="line-section-body">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Material</div>
+              <table class="pricing-table"><thead><tr style="background:var(--gray-50);"><th>Type &amp; Description</th><th>Quantity</th><th>Unit</th><th>Cost / Unit</th><th>Markup</th><th style="text-align:right;">Price / Unit</th><th style="text-align:right;">Warnings</th></tr></thead>
+              <tbody><tr><td colspan="7" style="padding:16px;text-align:center;color:var(--gray-500);font-size:12px;font-style:italic;">No material items added</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-600);">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span>Provider material quote</span>
+                  <input type="number" placeholder="$" style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;" />
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <span>Material margin <strong>N/A</strong></span>
+                  <span>Material subtotal <strong style="color:var(--gray-900);">$0.00</strong></span>
+                </div>
+              </div>
+
+              <div style="font-size:13px;font-weight:600;margin:20px 0 8px;">Equipment</div>
+              <table class="pricing-table"><thead><tr style="background:var(--gray-50);"><th>Type &amp; Description</th><th>Quantity</th><th>Unit</th><th>Cost / Unit</th><th>Markup</th><th style="text-align:right;">Price / Unit</th><th style="text-align:right;">Warnings</th></tr></thead>
+              <tbody><tr><td colspan="7" style="padding:16px;text-align:center;color:var(--gray-500);font-size:12px;font-style:italic;">No equipment items added</td></tr></tbody></table>
+              <div class="add-line">+ Add</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-600);">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span>Provider equipment quote</span>
+                  <input type="number" placeholder="$" style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;" />
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <span>Equipment margin <strong>N/A</strong></span>
+                  <span>Equipment subtotal <strong style="color:var(--gray-900);">$0.00</strong></span>
+                </div>
+              </div>
+
+              ${isAP?`<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--gray-200);">
+                <button class="btn btn-sm">Cancel</button>
+                <button class="btn btn-sm btn-primary" id="save-pricing-btn-matEquip" ${hasProv?'':'disabled'}>Save &amp; Next</button>
+              </div>`:''}
+            </div>`:''}
           </div>
 
-          <!-- Pretax total Accordion (collapsed) -->
+          <!-- Pretax total Accordion -->
           <div class="line-section">
-            <div class="line-section-header" style="flex-wrap:wrap;">
-              <span>&#9654; Pretax total</span>
+            <div class="line-section-header accordion-header" data-accordion="pretax" style="flex-wrap:wrap;">
+              <span>${accordions.pretax?'&#9660;':'&#9654;'} Pretax total</span>
               <span style="font-size:11px;color:var(--gray-700);font-weight:400;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
                 <div>
                   <div style="font-size:10px;color:var(--gray-500);">Margin calculated with the pretax dollar amount</div>
@@ -815,16 +853,60 @@ function renderDetail(){
                 <span>Provider quote <strong>$${hasProv?p.providerQuote.toLocaleString()+'.00':'0.00'}</strong></span>
               </span>
             </div>
+            ${accordions.pretax?`<div class="line-section-body">
+              <div style="padding:8px 0;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px;">
+                  <span style="color:var(--gray-600);">Pretax proposal total</span>
+                  <span style="font-weight:600;">$${hasCust?p.customerPrice.toLocaleString()+'.00':'0.00'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px;">
+                  <span style="color:var(--gray-600);">Total ticket costs</span>
+                  <span style="font-weight:600;">$${((hasProv?p.providerQuote:0)+2760).toLocaleString()}.00 <span style="font-size:10px;color:var(--gray-500);">&#9662;</span></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12px;">
+                  <span style="color:var(--gray-600);">Other incurred costs (labor, trip, materials previously invoiced)</span>
+                  <span style="font-weight:600;">$2,760.00</span>
+                </div>
+              </div>
+            </div>`:''}
           </div>
 
-          <!-- Tax -->
+          <!-- Tax Accordion -->
           <div class="line-section">
-            <div class="line-section-header"><span>&#9654; Tax</span><span style="font-weight:600;font-size:13px;">$${hasCust?(p.customerPrice*0.0826).toFixed(2):'0.00'}</span></div>
+            <div class="line-section-header accordion-header" data-accordion="tax">
+              <span>${accordions.tax?'&#9660;':'&#9654;'} Tax</span>
+              <span style="font-weight:600;font-size:13px;">$${hasCust?(p.customerPrice*0.0826).toFixed(2):'0.00'}</span>
+            </div>
+            ${accordions.tax?`<div class="line-section-body">
+              <div style="padding:8px 0;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px;">
+                  <span style="color:var(--gray-600);">Tax rate</span>
+                  <span><input type="number" value="8.26" step="0.01" style="width:60px;padding:4px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;text-align:right;" /> <span style="color:var(--gray-500);margin-left:4px;">%</span></span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px;">
+                  <span style="color:var(--gray-600);">Taxable amount</span>
+                  <span style="font-weight:600;">$${hasCust?p.customerPrice.toLocaleString()+'.00':'0.00'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:12px;">
+                  <span style="color:var(--gray-600);">Tax amount</span>
+                  <span style="font-weight:600;">$${hasCust?(p.customerPrice*0.0826).toFixed(2):'0.00'}</span>
+                </div>
+                <div style="font-size:11px;color:var(--gray-500);font-style:italic;margin-top:4px;">Tax auto-calculated from property location and service type. Override above if jurisdiction differs.</div>
+              </div>
+            </div>`:''}
           </div>
 
-          <!-- Photos & Documents -->
+          <!-- Photos & Documents Accordion -->
           <div class="line-section">
-            <div class="line-section-header"><span>&#9654; Photos &amp; Documents</span><span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span></div>
+            <div class="line-section-header accordion-header" data-accordion="photos">
+              <span>${accordions.photos?'&#9660;':'&#9654;'} Photos &amp; Documents</span>
+              <span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span>
+            </div>
+            ${accordions.photos?`<div class="line-section-body">
+              <div class="attachment-item">&#128206; compressor_quote.pdf</div>
+              <div class="attachment-item">&#128206; site_photo.jpg</div>
+              <div class="add-line" style="margin-top:8px;">+ Upload file</div>
+            </div>`:''}
           </div>
 
           <!-- Dark total bar -->
@@ -969,7 +1051,7 @@ function bindDashboard(){
   document.querySelectorAll('thead th.sortable').forEach(th=>th.addEventListener('click',()=>{const f=th.dataset.sort;if(sortField===f)sortDir=sortDir==='asc'?'desc':'asc';else{sortField=f;sortDir='desc';}render();}));
 
   // Row clicks
-  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';openDropdown=null;render();}));
+  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';openDropdown=null;accordions={labor:true,matEquip:false,pretax:false,tax:false,photos:false};render();}));
 }
 
 function bindDetail(){
@@ -997,11 +1079,22 @@ function bindDetail(){
   })));
 
   // Save pricing (from Awaiting Pricing) - advances to Pending Submission
-  ['save-pricing-btn','save-pricing-btn-inline'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+  ['save-pricing-btn','save-pricing-btn-inline','save-pricing-btn-matEquip'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
     selectedProposal.status='pending-submission';
     toast('Pricing saved. Moved to Pending Submission.','success');
     render();
   }));
+
+  // Accordion toggles
+  document.querySelectorAll('.accordion-header').forEach(h=>{
+    h.addEventListener('click',e=>{
+      // Don't toggle if click was on an input/select/button inside the header
+      if(e.target.closest('input,select,button,textarea'))return;
+      const key=h.dataset.accordion;
+      accordions[key]=!accordions[key];
+      render();
+    });
+  });
 
   // Submit via integration
   ['submit-integrated-btn','submit-integrated-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
