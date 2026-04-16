@@ -347,6 +347,7 @@ let currentView='dashboard',selectedStage=null,selectedProposal=null;
 let filters={customer:null,serviceLine:null,serviceType:null,assignee:null,createdBy:null};
 let openDropdown=null;
 let searchQuery='';
+let showPreview=false;
 
 function render(){
   const el=document.getElementById('app-content');
@@ -575,8 +576,84 @@ function renderDetail(){
         </div>
       `:''}
 
-      <!-- Estimates Section -->
-      ${!isTerminal?`
+      <!-- PREVIEW MODE -->
+      ${(showPreview&&(isAP||isPS))?`
+        <div class="card" style="border:2px solid var(--primary);">
+          <div class="card-header" style="background:#e8f0fe;">
+            <h3 style="color:var(--primary);">Customer Proposal Preview</h3>
+            <button class="btn btn-sm btn-outline-primary" id="back-to-pricing-btn">&#8592; Back to Pricing</button>
+          </div>
+          <div class="card-body">
+            <div class="alert-banner info" style="margin-bottom:20px;">This is what the customer will see. Review before submitting.</div>
+
+            <div style="border:1px solid var(--gray-200);border-radius:8px;padding:24px;background:white;">
+              <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;">Proposal</div>
+                <div style="font-size:20px;font-weight:700;">${p.id}</div>
+                <div style="font-size:13px;color:var(--gray-600);">${p.customer} ${p.serviceType} ${p.serviceLine}</div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;background:var(--gray-50);border-radius:8px;margin-bottom:20px;">
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Customer</span><div style="font-weight:500;margin-top:2px;">${p.customer}</div></div>
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Property</span><div style="font-weight:500;margin-top:2px;">${p.location}</div></div>
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Service</span><div style="font-weight:500;margin-top:2px;">${p.serviceLine} / ${p.serviceType}</div></div>
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Ticket</span><div style="font-weight:500;margin-top:2px;color:var(--primary);">${p.tktId}</div></div>
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Valid Until</span><div style="font-weight:500;margin-top:2px;">${p.validUntil}</div></div>
+                <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Owner</span><div style="font-weight:500;margin-top:2px;">${p.assignee}</div></div>
+              </div>
+
+              <div style="margin-bottom:20px;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:6px;">Scope of Work</div>
+                <p style="font-size:13px;line-height:1.6;color:var(--gray-700);">${p.description}</p>
+              </div>
+
+              <div style="border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;margin-bottom:20px;">
+                <div style="padding:12px 16px;background:var(--gray-50);font-weight:600;font-size:13px;border-bottom:1px solid var(--gray-200);">Pricing Summary</div>
+                <div style="padding:16px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+                    <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Labor</span><div style="font-size:16px;font-weight:700;margin-top:2px;">$${(p.laborHours*p.laborRate).toLocaleString()}</div></div>
+                    <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Trip</span><div style="font-size:16px;font-weight:700;margin-top:2px;">$${p.tripCharge.toLocaleString()}</div></div>
+                    <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Materials &amp; Parts</span><div style="font-size:16px;font-weight:700;margin-top:2px;">$${Math.floor(p.materialCost*1.25).toLocaleString()}</div></div>
+                    <div><span style="font-size:11px;font-weight:600;color:var(--orange);text-transform:uppercase;">Equipment</span><div style="font-size:16px;font-weight:700;margin-top:2px;">$0</div></div>
+                  </div>
+                  <div style="border-top:2px solid var(--gray-200);padding-top:12px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:600;">Total</span>
+                    <span style="font-size:20px;font-weight:700;color:var(--orange);">$${p.customerPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">
+                <div style="padding:12px 16px;background:var(--gray-50);font-weight:600;font-size:13px;border-bottom:1px solid var(--gray-200);">Details</div>
+                <div style="padding:16px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+                    <div><span style="color:var(--gray-500);">Created:</span> ${p.createdDate}</div>
+                    <div><span style="color:var(--gray-500);">Valid Till:</span> ${p.validUntil}</div>
+                    <div><span style="color:var(--gray-500);">Source:</span> ${p.creatorType==='field'?'Field Initiated':p.creatorType==='nat'?'NAT Created':'Provider Initiated'}</div>
+                    <div><span style="color:var(--gray-500);">Service Line:</span> ${p.serviceLine}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;margin-top:16px;">
+                <div style="padding:12px 16px;background:var(--gray-50);font-weight:600;font-size:13px;display:flex;justify-content:space-between;border-bottom:1px solid var(--gray-200);">Attachments <span style="font-weight:400;color:var(--gray-500);">2 files</span></div>
+                <div style="padding:12px 16px;">
+                  <div class="attachment-item">&#128206; compressor_quote.pdf</div>
+                  <div class="attachment-item">&#128206; site_photo.jpg</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
+              <button class="btn btn-outline-primary" id="back-to-pricing-btn2">&#8592; Back to Pricing</button>
+              <button class="btn btn-orange btn-lg" id="confirm-submit-btn">Submit to Customer</button>
+            </div>
+          </div>
+        </div>
+      `:''}
+
+      <!-- Estimates Section (hidden during preview) -->
+      ${(!showPreview||isPS)&&!isTerminal?`
         <div class="card">
           <div class="card-header">
             <h3>Estimates</h3>
@@ -612,8 +689,8 @@ function renderDetail(){
         </div>
       `:''}
 
-      <!-- Pricing Section -->
-      <div class="card" ${pricingLocked?'style="position:relative;"':''}>
+      <!-- Pricing Section (hidden during preview) -->
+      ${showPreview&&(isAP||isPS)?'':`<div class="card" ${pricingLocked?'style="position:relative;"':''}>`}
         ${pricingLocked?'<div style="position:absolute;inset:0;background:rgba(255,255,255,0.7);z-index:1;border-radius:8px;display:flex;align-items:center;justify-content:center;"><div style="background:var(--gray-200);padding:10px 20px;border-radius:6px;font-weight:600;color:var(--gray-600);">&#128274; Qualify proposal to unlock pricing</div></div>':''}
         <div class="card-header"><h3>Pricing Status</h3><span style="font-size:12px;color:var(--gray-500);">Summary of line item totals below</span></div>
         <div class="card-body">
@@ -665,7 +742,7 @@ function renderDetail(){
               <tbody><tr><td colspan="5" style="color:var(--gray-400);font-style:italic;text-align:center;">No trip items added</td></tr></tbody></table>
               <div class="add-line">+ Add</div>
               <div class="provider-quote-row">Provider trip quote <input type="number" value="${p.tripCharge}" style="width:80px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;text-align:right;margin-left:8px;" /> &nbsp; Trip margin <strong>N/A</strong> &nbsp; Trip subtotal <strong>$0.00</strong></div>
-              ${isAP?`<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;"><button class="btn">Cancel</button><button class="btn btn-primary" id="save-pricing-btn">Save &amp; Next</button></div>`:''}
+              ${isAP?`<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px;"><button class="btn">Cancel</button><button class="btn btn-primary" id="preview-proposal-btn">Preview Proposal &#8594;</button></div>`:''}
             </div>
           </div>
 
@@ -693,7 +770,7 @@ function renderDetail(){
           <div class="line-section"><div class="line-section-header collapsible-header"><span>&#9654; Photos &amp; Documents</span><span style="font-weight:400;font-size:12px;color:var(--gray-500);">2 files</span></div></div>
           <div class="total-bar"><span>Total</span><span>$${hasCust?Math.floor(p.customerPrice*1.08).toLocaleString():'0.00'}</span></div>
         </div>
-      </div>
+      ${showPreview&&(isAP||isPS)?'':'</div>'}
 
       <!-- Submission Section -->
       ${isPS?`
@@ -735,15 +812,18 @@ function renderDetail(){
         </div>
       </div>
 
-      <!-- Bottom Actions -->
+      <!-- Bottom Actions (hidden during preview, preview has its own) -->
+      ${showPreview&&(isAP||isPS)?'':`
       <div class="bottom-actions">
-        <div>${!isTerminal?`<button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>`:''}</div>
+        <div>${!isTerminal?'<button class="btn btn-danger" id="cancel-btn">&#10007; Cancel this Proposal</button>':''}</div>
         <div style="display:flex;gap:8px;">
-          ${isPS?`<button class="btn">Edit</button><button class="btn btn-orange btn-lg" id="submit-btn2">Submit</button>`:''}
-          ${isSub?`<button class="btn btn-danger-filled" id="reject-btn2">Mark Rejected</button><button class="btn btn-success btn-lg" id="approve-btn2">Mark Approved</button>`:''}
-          ${isPR?`<button class="btn btn-success btn-lg" id="approve-btn3">&#10003; Approve</button>`:''}
+          ${isAP&&!showPreview?'<button class="btn btn-primary btn-lg" id="preview-proposal-btn2">Preview Proposal &#8594;</button>':''}
+          ${isPS&&!showPreview?'<button class="btn btn-orange btn-lg" id="submit-btn2">Submit to Customer</button>':''}
+          ${isSub?'<button class="btn btn-danger-filled" id="reject-btn2">Mark Rejected</button><button class="btn btn-success btn-lg" id="approve-btn2">Mark Approved</button>':''}
+          ${isPR?'<button class="btn btn-success btn-lg" id="approve-btn3">&#10003; Approve</button>':''}
         </div>
       </div>
+      `}
     </div>`;
 }
 
@@ -838,14 +918,33 @@ function bindDetail(){
     selectedProposal.status='cancelled';toast('Proposal cancelled.','error');render();
   })));
 
-  // Save pricing
-  document.getElementById('save-pricing-btn')?.addEventListener('click',()=>{
-    selectedProposal.status='pending-submission';toast('Pricing saved. Moved to Pending Submission.','success');render();
+  // Preview proposal (from Awaiting Pricing)
+  ['preview-proposal-btn','preview-proposal-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+    selectedProposal.status='pending-submission';
+    showPreview=true;
+    render();
+  }));
+
+  // Back to pricing (from preview)
+  ['back-to-pricing-btn','back-to-pricing-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
+    showPreview=false;
+    render();
+  }));
+
+  // Edit pricing (from Pending Submission normal view)
+  document.getElementById('edit-pricing-btn')?.addEventListener('click',()=>{
+    showPreview=false;
+    render();
   });
 
-  // Submit
+  // Confirm submit from preview
+  document.getElementById('confirm-submit-btn')?.addEventListener('click',()=>{
+    showSubmitModal(()=>{selectedProposal.status='submitted';showPreview=false;toast('Proposal submitted!','success');render();});
+  });
+
+  // Submit from Pending Submission normal view
   ['submit-btn','submit-btn2'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
-    showSubmitModal(()=>{selectedProposal.status='submitted';toast('Proposal submitted!','success');render();});
+    showSubmitModal(()=>{selectedProposal.status='submitted';showPreview=false;toast('Proposal submitted!','success');render();});
   }));
 
   // Mark approved/rejected
@@ -879,7 +978,7 @@ function bindDetail(){
 }
 
 // Global functions
-function goBack(){currentView='dashboard';selectedProposal=null;render();}
+function goBack(){currentView='dashboard';selectedProposal=null;showPreview=false;render();}
 function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',3000);}
 
 function useEstimate(amount,erqId){
