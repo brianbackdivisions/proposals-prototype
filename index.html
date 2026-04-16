@@ -1072,19 +1072,86 @@ function postERQToBoard(erqId){
 }
 
 function showCancelModal(onConfirm){
-  const reasons=['Pricing too high','Customer declined service','Duplicate proposal','Out of contract scope','Not a real opportunity','Provider unavailable','Customer handled internally','Other'];
+  // Reason taxonomy: each entry may have a follow-up field
+  const reasons=[
+    {key:'duplicate',label:'Duplicate',followUp:'proposal',followUpLabel:'Original proposal number',followUpPlaceholder:'e.g. PRP-123-4567',followUpRequired:true},
+    {key:'contractual',label:'Contractual service in scope',followUp:null},
+    {key:'customer-preference',label:'Customer stated did not want / customer preference',followUp:'text',followUpLabel:'Customer preference or rule',followUpPlaceholder:'e.g. Customer only approves after-hours work for this service line',followUpRequired:true},
+    {key:'pricing',label:'Pricing too high',followUp:null},
+    {key:'out-of-scope',label:'Out of contract scope',followUp:null},
+    {key:'not-real',label:'Not a real opportunity',followUp:null},
+    {key:'provider-unavailable',label:'Provider unavailable',followUp:null},
+    {key:'customer-internal',label:'Customer handled internally',followUp:null},
+    {key:'other',label:'Other',followUp:'text',followUpLabel:'Please specify',followUpPlaceholder:'Describe the cancellation reason',followUpRequired:true},
+  ];
   document.getElementById('modal-container').innerHTML=`
     <div class="modal-overlay" id="mo"><div class="modal fade-in">
       <div class="modal-header"><h3>Cancel Proposal</h3><button class="modal-close" id="mc">&times;</button></div>
       <div class="modal-body">
-        <div class="form-group"><label>Cancellation Reason (required)</label><select id="cr"><option value="">Select a reason...</option>${reasons.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Notes (optional)</label><textarea placeholder="Additional context..."></textarea></div>
+        <div class="form-group">
+          <label>Cancellation Reason (required)</label>
+          <select id="cr">
+            <option value="">Select a reason...</option>
+            ${reasons.map(r=>`<option value="${r.key}">${r.label}</option>`).join('')}
+          </select>
+        </div>
+        <div id="follow-up-container"></div>
+        <div class="form-group"><label>Notes (optional)</label><textarea id="cn" placeholder="Additional context..."></textarea></div>
       </div>
       <div class="modal-footer"><button class="btn" id="mcan">Cancel</button><button class="btn btn-danger-filled" id="mconf">Confirm</button></div>
     </div></div>`;
-  document.getElementById('mc').onclick=closeModal;document.getElementById('mcan').onclick=closeModal;
+
+  document.getElementById('mc').onclick=closeModal;
+  document.getElementById('mcan').onclick=closeModal;
   document.getElementById('mo').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
-  document.getElementById('mconf').onclick=()=>{const r=document.getElementById('cr').value;if(!r){alert('Please select a reason.');return;}closeModal();onConfirm(r);};
+
+  // Render follow-up field based on selection
+  function renderFollowUp(){
+    const sel=document.getElementById('cr').value;
+    const reason=reasons.find(r=>r.key===sel);
+    const container=document.getElementById('follow-up-container');
+    if(!reason||!reason.followUp){container.innerHTML='';return;}
+    const required=reason.followUpRequired?' <span style="color:var(--red);">*</span>':'';
+    if(reason.followUp==='proposal'){
+      container.innerHTML=`<div class="form-group fade-in">
+        <label>${reason.followUpLabel}${required}</label>
+        <input type="text" id="follow-up-value" placeholder="${reason.followUpPlaceholder}" style="font-family:monospace;" />
+        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">We'll link this proposal to the original for reference.</div>
+      </div>`;
+    }else{
+      container.innerHTML=`<div class="form-group fade-in">
+        <label>${reason.followUpLabel}${required}</label>
+        <textarea id="follow-up-value" placeholder="${reason.followUpPlaceholder}"></textarea>
+        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;">This helps the Opportunity Compass learn from outcomes.</div>
+      </div>`;
+    }
+  }
+  document.getElementById('cr').addEventListener('change',renderFollowUp);
+
+  document.getElementById('mconf').onclick=()=>{
+    const sel=document.getElementById('cr').value;
+    if(!sel){alert('Please select a reason.');return;}
+    const reason=reasons.find(r=>r.key===sel);
+    let followUpVal='';
+    if(reason.followUp){
+      const el=document.getElementById('follow-up-value');
+      followUpVal=el?el.value.trim():'';
+      if(reason.followUpRequired&&!followUpVal){
+        alert('Please provide: '+reason.followUpLabel);
+        el?.focus();
+        return;
+      }
+      // Basic validation for proposal number format
+      if(reason.followUp==='proposal'&&!/^PRP-\d{3}-\d{4}$/i.test(followUpVal)){
+        alert('Please enter a valid proposal number (e.g. PRP-123-4567)');
+        el?.focus();
+        return;
+      }
+    }
+    const fullReason=reason.label+(followUpVal?' — '+followUpVal:'');
+    closeModal();
+    onConfirm(fullReason);
+  };
 }
 
 function showSubmitModal(onConfirm){
