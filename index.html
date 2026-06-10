@@ -621,7 +621,7 @@ function renderDetail(){
         <div class="card-header">
           <h3>Description</h3>
           <div style="display:flex;gap:8px;align-items:center;">
-            <span class="ai-badge" id="ai-enhance-btn">&#10024; Enhance with AI</span>
+            <span class="ai-badge" id="ai-enhance-btn">&#10024; Enhance this proposal with Otto</span>
             <button class="btn btn-sm">Edit</button>
           </div>
         </div>
@@ -646,14 +646,7 @@ function renderDetail(){
             <!-- Agent signal pills -->
             <div class="agent-signals">${renderAgentSignals(p)}</div>
 
-            <div class="compass-box">
-              <div class="compass-title">&#9678; Opportunity Compass Insights</div>
-              ${p.compassInsights.map(i=>`<div class="compass-insight ${i.type}">${i.type==='positive'?'&#10003;':i.type==='negative'?'&#10007;':i.type==='warning'?'&#9888;':'&#8226;'} ${i.text}</div>`).join('')}
-              ${p.isProactive?`<div class="compass-insight warning">&#9888; No customer NTE provided. This was a proactive field visit identification.</div>`:''}
-              ${p.custNTE>0?`<div class="compass-insight neutral">&#8226; Customer NTE: $${p.custNTE.toLocaleString()}</div>`:''}
-            </div>
-
-            <div style="display:flex;gap:12px;margin-top:16px;">
+            <div style="display:flex;gap:12px;margin-top:4px;">
               <button class="btn btn-success btn-lg" id="approve-btn">&#10003; Qualify Proposal</button>
               <button class="btn btn-danger btn-lg" id="reject-btn">&#10007; Cancel Proposal</button>
             </div>
