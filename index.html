@@ -232,6 +232,46 @@
   .form-group input,.form-group select,.form-group textarea { width:100%; padding:8px 12px; border:1px solid var(--gray-300); border-radius:6px; font-size:13px; font-family:inherit; }
   .form-group textarea { resize:vertical; min-height:80px; }
 
+
+  /* ── Agent Signal Pills ── */
+  .signal-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:opacity 0.15s,box-shadow 0.15s;font-family:inherit;}
+  .signal-pill:hover{opacity:0.85;box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+  .signal-pill.scope-red{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+  .signal-pill.scope-yellow{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+  .signal-pill.dupe-orange{background:#fed7aa;color:#9a3412;border:1px solid #fb923c;}
+  .agent-signals{display:flex;align-items:center;gap:8px;margin:10px 0 12px;flex-wrap:wrap;}
+  .agent-loading-row{display:flex;align-items:center;gap:6px;color:#6b7280;font-size:12px;font-style:italic;}
+  .agent-spinner{width:12px;height:12px;border:2px solid #d1d5db;border-top-color:#6b7280;border-radius:50%;animation:agent-spin 0.8s linear infinite;}
+  @keyframes agent-spin{to{transform:rotate(360deg);}}
+  /* ── Agent Drawer ── */
+  .agent-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:500;display:none;}
+  .agent-drawer-overlay.open{display:block;}
+  .agent-drawer{position:fixed;right:0;top:0;bottom:0;width:660px;background:white;z-index:501;box-shadow:-4px 0 24px rgba(0,0,0,0.14);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s ease;}
+  .agent-drawer-overlay.open .agent-drawer{transform:translateX(0);}
+  .agent-drawer-header{padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+  .agent-drawer-header h3{font-size:15px;font-weight:600;color:#111827;}
+  .agent-drawer-header p{font-size:12px;color:#6b7280;margin-top:2px;}
+  .agent-drawer-close{cursor:pointer;color:#6b7280;font-size:22px;background:none;border:none;padding:0 4px;line-height:1;}
+  .agent-drawer-body{flex:1;overflow-y:auto;padding:16px 20px;}
+  .agent-info-banner{background:#fef9c3;border:1px solid #fde047;border-radius:6px;padding:10px 12px;font-size:12px;color:#713f12;margin-bottom:14px;display:flex;gap:8px;}
+  .scope-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .scope-table th{background:#f9fafb;text-align:left;padding:8px 10px;border:1px solid #e5e7eb;font-size:11px;color:#6b7280;font-weight:600;}
+  .scope-table td{padding:10px;border:1px solid #e5e7eb;vertical-align:top;line-height:1.5;}
+  .overlap-chip{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+  .overlap-0{background:#dcfce7;color:#166534;}
+  .overlap-100{background:#fee2e2;color:#991b1b;}
+  .overlap-mid{background:#fef3c7;color:#92400e;}
+  .dupe-card{border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s,background 0.15s;margin-bottom:8px;}
+  .dupe-card:hover{border-color:#2563eb;background:#f0f9ff;}
+  .dupe-sim{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-top:4px;}
+  .dupe-sim.high{background:#fee2e2;color:#991b1b;}
+  .dupe-sim.med{background:#fef3c7;color:#92400e;}
+  .dupe-reason{font-size:12px;color:#374151;margin-top:6px;background:#f9fafb;padding:6px 8px;border-radius:4px;line-height:1.5;}
+  /* ── Agent Feedback Box ── */
+  .agent-feedback-box{background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:12px 14px;margin-top:12px;}
+  .agent-feedback-box h4{font-size:12px;font-weight:600;color:#166534;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .agent-feedback-box p{font-size:11px;color:#166534;margin-bottom:8px;line-height:1.5;}
+  .agent-feedback-box textarea{width:100%;border:1px solid #86efac;border-radius:4px;padding:6px 8px;font-size:11px;resize:none;height:56px;background:white;font-family:inherit;}
   .fade-in { animation:fadeIn 0.3s ease; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
@@ -322,6 +362,8 @@ function genProposal(status){
     tripCharge:rndInt(20,100),materialCost:rndInt(0,500),
     erqs,isIntegrated,hasContractRates,hasFieldERQ,
     isProactive:custNTE===0,
+    inScopeOverlapPct:(()=>{const r=Math.random();if(r>0.72)return 100;if(r>0.55)return Math.floor(Math.random()*49+50);return Math.floor(Math.random()*49);})(),
+    dupeCount:Math.random()>0.72?(Math.random()>0.55?2:1):0,
     compassInsights:genCompassInsights(sl,customer),
     qualified:!['draft','pending-review'].includes(status),
     sfOpportunityId:!['draft','pending-review'].includes(status)?`006${rndInt(100000,999999)}`:null,
@@ -353,6 +395,8 @@ let filters={customer:null,serviceLine:null,serviceType:null,assignee:null,creat
 let openDropdown=null;
 let searchQuery='';
 let showPreview=false;
+let agentSignalReady=false;
+let showAgentFeedback=false;
 
 function render(){
   const el=document.getElementById('app-content');
@@ -390,6 +434,39 @@ function renderFilterChip(label,filterKey,values,displayFn){
       </div>`).join('')}
     </div>`:''}
   </div>`;
+}
+
+
+function renderAgentSignals(p){
+  if(!agentSignalReady){
+    return '<div class="agent-loading-row"><div class="agent-spinner"></div> Checking contract scope and duplicates…</div>';
+  }
+  const pills=[];
+  if(p.inScopeOverlapPct>=100){
+    pills.push('<button class="signal-pill scope-red" id="scope-pill-btn">⚠ In Contract Scope · 100%</button>');
+  }else if(p.inScopeOverlapPct>=50){
+    pills.push('<button class="signal-pill scope-yellow" id="scope-pill-btn">⚠ Partial Contract Overlap · '+p.inScopeOverlapPct+'%</button>');
+  }
+  if(p.dupeCount>0){
+    pills.push('<button class="signal-pill dupe-orange" id="dupe-pill-btn">⊘ Possible Duplicate · '+p.dupeCount+'</button>');
+  }
+  if(pills.length===0){
+    return '<span style="font-size:12px;color:#16a34a;display:flex;align-items:center;gap:4px;">✓ No contract conflicts or duplicates detected</span>';
+  }
+  return pills.join('');
+}
+
+function renderAgentFeedback(){
+  if(!showAgentFeedback)return '';
+  return \`<div class="agent-feedback-box">
+    <h4>Help us improve <button class="btn btn-sm" id="skip-feedback-btn" style="font-size:10px;padding:2px 6px;">Skip</button></h4>
+    <p>You qualified this proposal despite a flagged risk. A quick note helps the detection model improve.</p>
+    <textarea id="agent-feedback-text" placeholder="Optional: Why did you proceed? (e.g. scope is outside contract period, customer confirmed, etc.)"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;">
+      <button class="btn btn-sm" id="skip-feedback-btn2">Skip</button>
+      <button class="btn btn-sm btn-success" id="submit-feedback-btn">Submit</button>
+    </div>
+  </div>\`;
 }
 
 function renderDashboard(){
@@ -558,13 +635,16 @@ function renderDetail(){
 
       <!-- Qualification / Compass Section (Pending Review) -->
       ${isPR?`
-        <div class="card" style="border:2px solid var(--orange);">
+        <div class="card" id="qualify-card" style="border:2px solid var(--orange);">
           <div class="card-header" style="background:var(--orange-light);">
-            <h3 style="color:#e65100;">Confirm Relevant Proposal</h3>
-            <span style="font-size:12px;color:var(--gray-500);">Qualification required before pricing</span>
+            <h3 style="color:#e65100;">Do you want to qualify this proposal?</h3>
+            <span style="font-size:12px;color:var(--gray-500);">Does the proposal fit the customer, the contract, the service scope?</span>
           </div>
           <div class="card-body">
-            ${p.creatorType==='field'?`<div class="alert-banner warn"><strong>Field-initiated proposal</strong> submitted by <strong>${p.creatorName}</strong>. Review details and Compass insights before qualifying.</div>`:''}
+            ${p.creatorType==='field'?`<div class="alert-banner warn" style="margin-bottom:12px;"><strong>Field-initiated proposal</strong> submitted by <strong>${p.creatorName}</strong>. Review details and agent insights before qualifying.</div>`:''}
+
+            <!-- Agent signal pills -->
+            <div class="agent-signals">${renderAgentSignals(p)}</div>
 
             <div class="compass-box">
               <div class="compass-title">&#9678; Opportunity Compass Insights</div>
@@ -574,9 +654,10 @@ function renderDetail(){
             </div>
 
             <div style="display:flex;gap:12px;margin-top:16px;">
-              <button class="btn btn-success btn-lg" id="approve-btn">&#10003; Approve Opportunity</button>
+              <button class="btn btn-success btn-lg" id="approve-btn">&#10003; Qualify Proposal</button>
               <button class="btn btn-danger btn-lg" id="reject-btn">&#10007; Cancel Proposal</button>
             </div>
+            ${renderAgentFeedback()}
           </div>
         </div>
       `:''}
@@ -1051,7 +1132,14 @@ function bindDashboard(){
   document.querySelectorAll('thead th.sortable').forEach(th=>th.addEventListener('click',()=>{const f=th.dataset.sort;if(sortField===f)sortDir=sortDir==='asc'?'desc':'asc';else{sortField=f;sortDir='desc';}render();}));
 
   // Row clicks
-  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);currentView='detail';openDropdown=null;accordions={labor:true,matEquip:false,pretax:false,tax:false,photos:false};render();}));
+  document.querySelectorAll('tbody tr[data-pid]').forEach(tr=>tr.addEventListener('click',()=>{
+    selectedProposal=proposals.find(p=>p.id===tr.dataset.pid);
+    currentView='detail';openDropdown=null;
+    accordions={labor:true,matEquip:false,pretax:false,tax:false,photos:false};
+    agentSignalReady=false;showAgentFeedback=false;
+    render();
+    if(selectedProposal.status==='pending-review'){setTimeout(()=>{agentSignalReady=true;render();},1600);}
+  }));
 }
 
 function bindDetail(){
@@ -1059,20 +1147,35 @@ function bindDetail(){
 
   // Approve qualification
   ['approve-btn','approve-btn3'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>{
-    const btn=document.getElementById(id);
-    if(btn){btn.disabled=true;btn.innerHTML='&#9203; Qualifying...';}
-    // Disable reject too
-    document.getElementById('reject-btn')?.setAttribute('disabled','');
-    // Phase 1: short delay to simulate processing
-    setTimeout(()=>{
-      selectedProposal.status='awaiting-pricing';selectedProposal.qualified=true;
-      const sfId='006'+Math.floor(Math.random()*900000+100000);
-      selectedProposal.sfOpportunityId=sfId;
-      selectedProposal.sfOpportunityUrl='https://divisionsinc.lightning.force.com/lightning/r/Opportunity/'+sfId+'/view';
-      // Re-render with the new status, then show the SF toast inline
+    const p=selectedProposal;
+    const hasRisk=agentSignalReady&&(p.inScopeOverlapPct>=50||p.dupeCount>0);
+    // If risk is present and feedback not yet shown, show feedback box first
+    if(hasRisk&&!showAgentFeedback){
+      showAgentFeedback=true;
       render();
-      showSFToast(sfId);
-    },1200);
+      // Bind feedback skip/submit
+      ['skip-feedback-btn','skip-feedback-btn2'].forEach(fid=>document.getElementById(fid)?.addEventListener('click',()=>{
+        showAgentFeedback=false;proceedQualify();
+      }));
+      document.getElementById('submit-feedback-btn')?.addEventListener('click',()=>{
+        showAgentFeedback=false;proceedQualify();
+      });
+      return;
+    }
+    proceedQualify();
+    function proceedQualify(){
+      const btn=document.getElementById('approve-btn');
+      if(btn){btn.disabled=true;btn.innerHTML='&#9203; Qualifying...';}
+      document.getElementById('reject-btn')?.setAttribute('disabled','');
+      setTimeout(()=>{
+        p.status='awaiting-pricing';p.qualified=true;
+        const sfId='006'+Math.floor(Math.random()*900000+100000);
+        p.sfOpportunityId=sfId;
+        p.sfOpportunityUrl='https://divisionsinc.lightning.force.com/lightning/r/Opportunity/'+sfId+'/view';
+        agentSignalReady=false;showAgentFeedback=false;
+        render();showSFToast(sfId);
+      },1200);
+    }
   }));
   ['reject-btn'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showCancelModal(r=>{
     selectedProposal.status='cancelled';toast('Proposal cancelled.','error');render();
@@ -1123,6 +1226,10 @@ function bindDetail(){
   // Create ERQ
   document.getElementById('create-erq-btn')?.addEventListener('click',showERQModal);
 
+  // Agent signal pill clicks
+  document.getElementById('scope-pill-btn')?.addEventListener('click',()=>openAgentDrawer('scope'));
+  document.getElementById('dupe-pill-btn')?.addEventListener('click',()=>openAgentDrawer('dupe'));
+
   // AI enhance
   document.getElementById('ai-enhance-btn')?.addEventListener('click',()=>{
     const ta=document.getElementById('desc-textarea');
@@ -1144,7 +1251,7 @@ function bindDetail(){
 }
 
 // Global functions
-function goBack(){currentView='dashboard';selectedProposal=null;showPreview=false;render();}
+function goBack(){currentView='dashboard';selectedProposal=null;showPreview=false;agentSignalReady=false;showAgentFeedback=false;render();}
 function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='toast '+type+' show';setTimeout(()=>el.className='toast',3000);}
 
 function useEstimate(amount,erqId){
@@ -1319,5 +1426,92 @@ function showSFToast(sfId){
 
 render();
 </script>
+
+<!-- ── Agent: Scope Analysis Drawer ── -->
+<div class="agent-drawer-overlay" id="agent-scope-drawer">
+  <div class="agent-drawer">
+    <div class="agent-drawer-header">
+      <div><h3>Contract Scope Analysis</h3><p>AI-generated &mdash; review before making your qualification decision</p></div>
+      <button class="agent-drawer-close" onclick="closeAgentDrawer('agent-scope-drawer')">&times;</button>
+    </div>
+    <div class="agent-drawer-body" id="scope-drawer-body"></div>
+  </div>
+</div>
+
+<!-- ── Agent: Duplicate Proposals Drawer ── -->
+<div class="agent-drawer-overlay" id="agent-dupe-drawer">
+  <div class="agent-drawer">
+    <div class="agent-drawer-header">
+      <div><h3>Possible Duplicate Proposals</h3><p id="dupe-drawer-subtitle">AI-generated &mdash; potential matches found</p></div>
+      <button class="agent-drawer-close" onclick="closeAgentDrawer('agent-dupe-drawer')">&times;</button>
+    </div>
+    <div class="agent-drawer-body" id="dupe-drawer-body"></div>
+  </div>
+</div>
+
+<script>
+// Close drawer on overlay click
+document.querySelectorAll('.agent-drawer-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
+});
+
+function openAgentDrawer(type){
+  const p=selectedProposal;
+  if(type==='scope'){
+    const pct=p.inScopeOverlapPct;
+    const overlapClass=pct>=100?'overlap-100':pct>=50?'overlap-mid':'overlap-0';
+    // Generate a second row with 0% overlap to show contrast
+    document.getElementById('scope-drawer-body').innerHTML=\`
+      <div class="agent-info-banner">&#9888; One or more proposals show significant overlap with existing contracts or PSAs for this customer. Review before qualifying.</div>
+      <table class="scope-table">
+        <thead><tr><th>Proposal</th><th>Overlap</th><th>Reasoning Summary</th><th>Remarks</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a style="color:#2563eb;cursor:pointer;">PRP-\${Math.floor(Math.random()*900000+100000)}</a></td>
+            <td><span class="overlap-chip \${overlapClass}">\${pct}%</span></td>
+            <td style="max-width:200px;font-size:11px;">\${pct>=100?
+              'The proposed '+p.serviceType+' work is covered under both the contract and PSA. Work activity, scope text, and service type all match. Date ranges fully cover the proposed work period.':
+              'Partial overlap detected for '+p.serviceLine+' scope. Some aspects of the described work may fall within contracted scope. Review against current contract terms.'}</td>
+            <td style="font-size:11px;\${pct>=100?'color:#dc2626;':''}">\${pct>=100?'No photos were provided to verify the proposal description.':'Scope description is broadly similar but may represent distinct work. Verify with customer.'}</td>
+          </tr>
+          <tr>
+            <td><a style="color:#2563eb;cursor:pointer;">PRP-\${Math.floor(Math.random()*900000+100000)}</a></td>
+            <td><span class="overlap-chip overlap-0">0%</span></td>
+            <td style="max-width:200px;font-size:11px;">Proposed work is not covered by any current contract or PSA for \${p.customer}. No contract scope explicitly includes this service type.</td>
+            <td style="font-size:11px;">Proposal description matches available context. No discrepancy noted.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;padding:10px 12px;background:#fef9c3;border:1px solid #fde047;border-radius:6px;font-size:11px;color:#713f12;">
+        <strong>What to do:</strong> If you believe this proposal is valid despite the contract overlap, qualify it and provide brief feedback to help improve the model.
+      </div>\`;
+    document.getElementById('agent-scope-drawer').classList.add('open');
+  } else {
+    const count=p.dupeCount;
+    document.getElementById('dupe-drawer-subtitle').textContent='AI-generated — '+count+' potential match'+(count>1?'es':'')+' found for this proposal';
+    let cards='';
+    const sims=[{pct:91,cls:'high',status:'Pending Submission'},{pct:78,cls:'med',status:'Submitted'}];
+    for(let i=0;i<count;i++){
+      const s=sims[i];
+      cards+=\`<div class="dupe-card">
+        <div style="color:#2563eb;font-weight:600;font-size:13px;">PRP-\${Math.floor(Math.random()*900000+100000)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">\${p.serviceLine} &middot; \${p.customer} &middot; \${p.location.split(' - ')[0]} &middot; \${s.status}</div>
+        <div class="dupe-sim \${s.cls}">&#9888; \${s.pct}% similarity</div>
+        <div class="dupe-reason">Proposal covers similar scope at the same property. Service type and description match closely. Currently in \${s.status} with pricing applied.</div>
+      </div>\`;
+    }
+    document.getElementById('dupe-drawer-body').innerHTML=\`
+      <div class="agent-info-banner">&#8856; The following existing proposals may cover the same scope for this property. Click any proposal to review before qualifying.</div>
+      \${cards}
+      <div style="margin-top:14px;padding:10px 12px;background:#fef9c3;border:1px solid #fde047;border-radius:6px;font-size:11px;color:#713f12;">
+        <strong>What to do:</strong> If these are genuinely separate scopes, qualify and provide feedback. If this is a true duplicate, cancel this proposal.
+      </div>\`;
+    document.getElementById('agent-dupe-drawer').classList.add('open');
+  }
+}
+
+function closeAgentDrawer(id){document.getElementById(id).classList.remove('open');}
+</script>
+
 </body>
 </html>
